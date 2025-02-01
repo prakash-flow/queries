@@ -1,3 +1,7 @@
+set @country_code = 'UGA';
+set @month = '202412';
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
+
 WITH original_query AS (
     SELECT
       total_os,
