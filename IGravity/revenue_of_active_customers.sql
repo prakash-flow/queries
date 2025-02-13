@@ -3,7 +3,7 @@ SET @country_code = 'UGA';
 
 SELECT IF(@country_code = 'UGA', 'UGX', 'RWF') INTO @currency;
 
-SET @prev_month = @month - 1;
+SET @prev_month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 1 MONTH), '%Y%m');
 SET @last_day = LAST_DAY(DATE(CONCAT(@month, '01')));
 
 SET @closure_date = (

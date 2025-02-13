@@ -25,7 +25,10 @@ set
     where
       country_code = @country_code
       and status = 'enabled'
-      and month = concat(@year - 1, "12")
+      and month = DATE_FORMAT(
+        DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 1 MONTH),
+        '%Y%m'
+      )
   );
 
 

@@ -1,5 +1,5 @@
 set
-  @year = 2024;
+  @month = 202406;
 
 set
   @country_code = 'UGA';
@@ -13,7 +13,7 @@ set
     where
       country_code = @country_code
       and status = 'enabled'
-      and month = concat(@year, "12")
+      and month = @month
   );
 
 set
@@ -31,7 +31,11 @@ set
       )
   );
 
-select @country_code, @year, @closure_date, @prev_closure_date;
+select
+  @country_code,
+  @month,
+  @closure_date,
+  @prev_closure_date;
 
 WITH
   pri AS (
@@ -47,11 +51,19 @@ WITH
       AND l.country_code = @country_code
       AND (
         (
-          year(txn_date) = @year
+          extract(
+            year_month
+            from
+              txn_date
+          ) = @month
           AND realization_date <= @closure_date
         )
         OR (
-          year(txn_date) < @year
+          extract(
+            year_month
+            from
+              txn_date
+          ) < @month
           AND realization_date > @prev_closure_date
           AND realization_date <= @closure_date
         )
@@ -86,7 +98,25 @@ WITH
     WHERE
       lt.txn_type IN ("excess_reversal")
       AND l.country_code = @country_code
-      AND realization_date > @prev_closure_date
+      AND (
+        (
+          extract(
+            year_month
+            from
+              txn_date
+          ) = @month
+          AND realization_date <= @closure_date
+        )
+        OR (
+          extract(
+            year_month
+            from
+              txn_date
+          ) < @month
+          AND realization_date > @prev_closure_date
+          AND realization_date <= @closure_date
+        )
+      )
       AND product_id NOT IN(
         SELECT
           id
@@ -115,17 +145,29 @@ WITH
       LEFT JOIN sec ON pri.loan_doc_id = sec.loan_doc_id
     WHERE
       pri.country_code = @country_code
-  ), loan_date as (
+    UNION
+    SELECT
+      sec.loan_doc_id,
+      IFNULL(pri.excess, 0) excess,
+      IFNULL(sec.excess_reversal, 0) excess_reversal,
+      IFNULL(pri.excess, 0) - ifnull(sec.excess_reversal, 0) unreversed_excess
+    FROM
+      pri
+      RIGHT JOIN sec ON pri.loan_doc_id = sec.loan_doc_id
+    WHERE
+      sec.country_code = @country_code
+  ),
+  loan_date as (
     select
       m.loan_doc_id `Loan ID`,
-    	l.cust_id `Customer ID`,
-    	l.acc_prvdr_code `Account Provider Code`,
-    	concat_ws(' ', p.first_name, p.middle_name, p.last_name) `Customer Name`,
-    	l.acc_number `Account Number`,
-    	concat_ws(' ', rm.first_name, rm.middle_name, rm.last_name) `RM Name`,
-    	m.excess `Excess`,
-    	m.excess_reversal `Reversal`,
-    	m.unreversed_excess `Unreversed`
+      l.cust_id `Customer ID`,
+      l.acc_prvdr_code `Account Provider Code`,
+      concat_ws(' ', p.first_name, p.middle_name, p.last_name) `Customer Name`,
+      l.acc_number `Account Number`,
+      concat_ws(' ', rm.first_name, rm.middle_name, rm.last_name) `RM Name`,
+      m.excess `Excess`,
+      m.excess_reversal `Reversal`,
+      m.unreversed_excess `Unreversed`
     from
       loans l
       join metricByLoan m on l.loan_doc_id = m.loan_doc_id
@@ -133,4 +175,9 @@ WITH
       left join persons p on p.id = b.owner_person_id
       left join persons rm on rm.id = l.flow_rel_mgr_id
   )
-  select * from loan_date;
+select
+  sum(`Excess`),
+  sum(`Reversal`),
+  sum(`Unreversed`)
+from
+  loan_date;
