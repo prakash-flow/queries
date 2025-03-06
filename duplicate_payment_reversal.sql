@@ -2,7 +2,7 @@ set
   @year = 2024;
 
 set
-  @country_code = 'UGA';
+  @country_code = 'RWA';
 
 set
   @closure_date = (
@@ -25,25 +25,29 @@ set
     where
       country_code = @country_code
       and status = 'enabled'
-      and month = DATE_FORMAT(
-        DATE_SUB(DATE(CONCAT(@year, '0101')), INTERVAL 1 MONTH),
-        '%Y%m'
-      )
+      and month = concat(@year - 1, "12")
   );
 
-select @country_code, @year, @closure_date, @prev_closure_date;
+select
+  @country_code,
+  @year,
+  @closure_date,
+  @prev_closure_date;
 
 WITH
   pri AS (
     SELECT
       l.loan_doc_id,
-      SUM(lt.excess) AS excess,
+      SUM(lt.amount) AS duplicate,
       l.country_code
     FROM
       loans l
       JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
     WHERE
-      lt.txn_type IN ("payment")
+      lt.txn_type IN (
+        'duplicate_disbursal',
+        'duplicate_payment_reversal'
+      )
       AND l.country_code = @country_code
       AND (
         (
@@ -72,21 +76,29 @@ WITH
       )
     GROUP BY
       l.loan_doc_id
-    HAVING
-      excess > 0
   ),
   sec as (
     SELECT
       l.loan_doc_id,
-      IFNULL(SUM(lt.amount), 0) AS excess_reversal,
+      IFNULL(SUM(lt.amount), 0) AS duplicate_reversal,
       l.country_code
     FROM
       loans l
       JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
     WHERE
-      lt.txn_type IN ("excess_reversal")
+      lt.txn_type IN ('dup_disb_rvrsl', 'duplicate_payment')
       AND l.country_code = @country_code
-      AND realization_date > @prev_closure_date
+      AND (
+        (
+          year(txn_date) = @year
+          AND realization_date <= @closure_date
+        )
+        OR (
+          year(txn_date) < @year
+          AND realization_date > @prev_closure_date
+          AND realization_date <= @closure_date
+        )
+      )
       AND product_id NOT IN(
         SELECT
           id
@@ -107,25 +119,37 @@ WITH
   metricByLoan as (
     SELECT
       pri.loan_doc_id,
-      pri.excess excess,
-      IFNULL(sec.excess_reversal, 0) excess_reversal,
-      pri.excess - ifnull(sec.excess_reversal, 0) unreversed_excess
+      pri.duplicate dup,
+      ifnull(sec.duplicate_reversal, 0) rev,
+      pri.duplicate - ifnull(sec.duplicate_reversal, 0) unrev
     FROM
       pri
       LEFT JOIN sec ON pri.loan_doc_id = sec.loan_doc_id
     WHERE
       pri.country_code = @country_code
-  ), loan_date as (
+    UNION
+    SELECT
+      sec.loan_doc_id,
+      pri.duplicate dup,
+      ifnull(sec.duplicate_reversal, 0) rev,
+      pri.duplicate - ifnull(sec.duplicate_reversal, 0) unrev
+    FROM
+      pri
+      RIGHT JOIN sec ON pri.loan_doc_id = sec.loan_doc_id
+    WHERE
+      sec.country_code = @country_code
+  ),
+  loan_date as (
     select
       m.loan_doc_id `Loan ID`,
-    	l.cust_id `Customer ID`,
-    	l.acc_prvdr_code `Account Provider Code`,
-    	concat_ws(' ', p.first_name, p.middle_name, p.last_name) `Customer Name`,
-    	l.acc_number `Account Number`,
-    	concat_ws(' ', rm.first_name, rm.middle_name, rm.last_name) `RM Name`,
-    	m.excess `Excess`,
-    	m.excess_reversal `Reversal`,
-    	m.unreversed_excess `Unreversed`
+      l.cust_id `Customer ID`,
+      l.acc_prvdr_code `Account Provider Code`,
+      concat_ws(' ', p.first_name, p.middle_name, p.last_name) `Customer Name`,
+      l.acc_number `Account Number`,
+      concat_ws(' ', rm.first_name, rm.middle_name, rm.last_name) `RM Name`,
+      m.dup `Duplicate Disbursal`,
+      m.rev `Reversal`,
+      m.unrev `Unreversed`
     from
       loans l
       join metricByLoan m on l.loan_doc_id = m.loan_doc_id
@@ -133,4 +157,9 @@ WITH
       left join persons p on p.id = b.owner_person_id
       left join persons rm on rm.id = l.flow_rel_mgr_id
   )
-  select * from loan_date;
+select
+  sum(`Duplicate Disbursal`),
+  sum(`Reversal`),
+  sum(`Unreversed`)
+from
+  loan_date;
