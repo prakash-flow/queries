@@ -16,6 +16,7 @@ set
 SET
   @header = (DATE_FORMAT(@last_day, '%M %d, %Y'));
   
+-- Existing records are taken by using month end realization_date
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
 
 select
