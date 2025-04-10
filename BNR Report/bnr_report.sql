@@ -2,7 +2,7 @@ set @report_date = '2024-12-31';
 set @month = '202412';
 set @country_code = 'RWA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));;
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
 
 # Watch
