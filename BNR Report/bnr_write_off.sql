@@ -2,7 +2,7 @@ set @report_date = '2025-01-07';
 set @month = '202409';
 set @country_code = 'RWA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));;
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
 
 select @last_day, @realization_date, @country_code, @month, @report_date, @having_condition;
@@ -135,7 +135,7 @@ from
       left join (
         select 
           l.loan_doc_id, 
-          sum(amount) partial_pay 
+          sum(principal) partial_pay 
         from 
           loans l 
           join loan_txns t ON l.loan_doc_id = t.loan_doc_id 

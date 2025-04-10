@@ -95,7 +95,7 @@ from
       left join (
         select 
           l.loan_doc_id, 
-          sum(amount) partial_pay 
+          sum(principal) partial_pay 
         from 
           loans l 
           join loan_txns t ON l.loan_doc_id = t.loan_doc_id 
