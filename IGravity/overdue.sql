@@ -45,7 +45,7 @@ FROM (
 LEFT JOIN (
     SELECT 
         t.loan_doc_id,
-        SUM(t.amount) AS partial_pay
+        SUM(t.principal) AS partial_pay
     FROM loans l
     JOIN loan_txns t ON t.loan_doc_id = l.loan_doc_id
     WHERE t.txn_type = 'payment'
