@@ -1,12 +1,19 @@
 set @month = '202412';
 set @country_code = 'RWA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));;
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
 
 select @month, @country_code, @last_day, @realization_date;
 
 SELECT 
+  SUM(
+    if(
+      l.loan_principal - t.total_amount > 0, 
+      1, 
+      0
+    )
+  ) os_count,
   SUM(
     if(
       l.loan_principal - t.total_amount > 0, 

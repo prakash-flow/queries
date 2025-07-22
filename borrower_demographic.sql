@@ -1,5 +1,5 @@
-set @month = "202503";
-set @country_code = 'RWA';
+set @month = "202506";
+set @country_code = 'UGA';
 
 set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
   
@@ -29,4 +29,8 @@ select 'Total Borrowers' as `Borrower Demographics`, ROUND(total_customer) as `V
 union all
 select 'Rural Borrower %', rural_percent from metric
 union all
-select 'Female Borrower %', female_percent from metric;
+select 'Female Borrower %', female_percent from metric
+union all
+select 'Rural Count', rural_count from metric
+union all
+select 'Female Count', female_count from metric;
