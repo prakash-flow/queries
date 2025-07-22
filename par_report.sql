@@ -125,7 +125,7 @@ FROM
     SELECT 
       loan_doc_id, 
       SUM(
-        if(txn_type = 'payment', amount, 0)
+        if(txn_type = 'payment', principal, 0)
       ) AS total_amount 
     FROM 
       loan_txns 
