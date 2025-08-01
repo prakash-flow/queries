@@ -16,4 +16,4 @@ where
   and reg_date <= @last_day 
   and b.country_code = @country_code 
 group by 
-  gender;
+  gender; 
