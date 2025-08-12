@@ -1,5 +1,5 @@
 set
-  @month = 202412;
+  @month = 202401;
 
 set
   @country_code = 'UGA';
@@ -17,7 +17,9 @@ set
   );
 
 select
+			@month `Month`,
       acc_number `Account Number`,
+      acc_prvdr_code `Account Provider`,
       stmt_txn_type `Transaction Type`,
       stmt_txn_id `Tranaction ID`,
       date(stmt_txn_date) `Transaction Date`,
