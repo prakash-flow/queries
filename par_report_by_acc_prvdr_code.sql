@@ -1,7 +1,7 @@
-set @month = '202412';
-set @country_code = 'RWA';
+set @month = '202507';
+set @country_code = 'UGA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));;
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
 
 select @month, @country_code, @last_day, @realization_date;
@@ -119,7 +119,7 @@ FROM
     SELECT 
       loan_doc_id, 
       SUM(
-        if(txn_type = 'payment', amount, 0)
+        if(txn_type = 'payment', principal, 0)
       ) AS total_amount 
     FROM 
       loan_txns 
