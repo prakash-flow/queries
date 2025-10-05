@@ -237,6 +237,7 @@ WITH
           FROM reassessment_accounts
           WHERE month = @month
         )
+        AND l.loan_purpose = 'float_advance'
         AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
         AND l.product_id NOT IN (43, 75, 300)
     ) ranked_loans
@@ -252,6 +253,7 @@ WITH
     FROM loans l
     JOIN loan_txns lt ON l.loan_doc_id = lt.loan_doc_id
     WHERE lt.txn_type = 'payment'
+      AND l.loan_purpose = 'float_advance'
       AND DATE(lt.txn_date) <= @last_day
       AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
       AND l.product_id NOT IN (43, 75, 300)
@@ -267,6 +269,7 @@ WITH
     WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
       AND l.product_id NOT IN (43, 75, 300)
       AND r.month = @month
+      AND l.loan_purpose = 'float_advance'
       AND DATEDIFF(@last_day, l.due_date) > 5
       AND (l.paid_date IS NULL OR DATEDIFF(l.paid_date, l.due_date) > 5)
     GROUP BY r.cust_id
@@ -281,6 +284,7 @@ WITH
     WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
       AND l.product_id NOT IN (43, 75, 300)
       AND EXTRACT(YEAR_MONTH FROM l.disbursal_date) <= @month
+      AND l.loan_purpose = 'float_advance'
       AND r.month = @month
     GROUP BY r.cust_id
   ),
@@ -320,6 +324,7 @@ WITH
     FROM loans l
     WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
       AND l.product_id NOT IN (43, 75, 300)
+      AND l.loan_purpose = 'float_advance'
       AND EXTRACT(YEAR_MONTH FROM l.disbursal_date) IN (@month, @prev_month)
     GROUP BY l.cust_id, EXTRACT(YEAR_MONTH FROM l.disbursal_date)
   ),
