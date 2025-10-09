@@ -35,6 +35,7 @@ SELECT
     CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name) `Customer Name`,
     b.reg_date `Registration Date`,
     b.status `Customer Status`,
+    DATE(b.last_visit_date) `Last Visit Date`,
     CONCAT_WS(' ', rm.first_name, rm.middle_name, rm.last_name) `RM Name`,
     ll.loan_principal `Last Loan Amount`,  
     ll.last_loan_status `Last Loan Status`,  
