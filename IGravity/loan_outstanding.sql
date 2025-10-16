@@ -22,10 +22,13 @@ SET @realization_date = (
     )
 );
 
+SET @forex_rate = (SELECT forex_rate FROM forex_rates WHERE base = 'UGX' AND quote = 'USD' AND DATE(forex_date) = @last_day);
+
 -- 5️⃣ Main overdue portfolio query
 SELECT 
-    SUM(IF(principal - IFNULL(partial_pay, 0) < 0, 0, principal - IFNULL(partial_pay, 0))) AS `Loans Overdue`,
-    SUM(IF(principal - IFNULL(partial_pay, 0) > 0, 1, 0)) AS `Loans Overdue Count`
+    SUM(IF(principal - IFNULL(partial_pay, 0) < 0, 0, principal - IFNULL(partial_pay, 0))) AS `Loans Outstanding`,
+    SUM(IF(principal - IFNULL(partial_pay, 0) < 0, 0, principal - IFNULL(partial_pay, 0))) * @forex_rate AS `Loan Outstanding (USD)`,
+    SUM(IF(principal - IFNULL(partial_pay, 0) > 0, 1, 0)) AS `Outstanding Count`
 FROM (
     SELECT 
         lt.loan_doc_id,
@@ -35,7 +38,6 @@ FROM (
     WHERE lt.txn_type = 'disbursal'
       AND DATE(l.disbursal_date) BETWEEN '2018-12-01' AND @last_day
       AND lt.realization_date <= @realization_date
-      AND DATEDIFF(@last_day, l.due_date) > 1
       AND l.loan_doc_id NOT IN (
           SELECT loan_doc_id
           FROM loan_write_off
@@ -58,7 +60,6 @@ LEFT JOIN (
       AND DATE(l.disbursal_date) BETWEEN '2018-12-01' AND @last_day
       AND DATE(t.txn_date) BETWEEN '2018-12-01' AND @last_day
       AND t.realization_date <= @realization_date
-      AND DATEDIFF(@last_day, l.due_date) > 1
       AND l.loan_doc_id NOT IN (
           SELECT loan_doc_id
           FROM loan_write_off

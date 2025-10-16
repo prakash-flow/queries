@@ -1,12 +1,24 @@
-set @country_code = 'UGA';
-set @month = '202503';
-set @first_day = '2025-01-01';
-set @last_day = '2025-03-31';
-set @prev_month = '202412';
+-- 1️⃣ Set year and quarter
+SET @year = 2025;
+SET @quarter = 3;  -- 1, 2, 3, or 4
+SET @country_code = 'UGA';
 
-set @closure_date = (select closure_date from flow_api.closure_date_records where status='enabled' and month = @month and country_code=@country_code);
-set @prev_closure_date = (select closure_date from flow_api.closure_date_records where status='enabled' and month = @prev_month and country_code=@country_code);
+-- 2️⃣ Compute first and last day of the quarter
+SET @first_day = MAKEDATE(@year, 1) + INTERVAL ((@quarter-1)*3) MONTH;
+SET @last_day  = LAST_DAY(@first_day + INTERVAL 2 MONTH);
 
+-- 3️⃣ Compute current month and previous quarter's last month
+SET @month = DATE_FORMAT(@last_day, '%Y%m');  -- current quarter end month
+SET @prev_quarter_last_month = DATE_FORMAT(@first_day - INTERVAL 1 MONTH, '%Y%m');  -- previous quarter end month
+
+-- 4️⃣ Get closure dates
+SET @closure_date = (SELECT closure_date FROM flow_api.closure_date_records WHERE status='enabled' AND month = @month AND country_code=@country_code);
+SET @prev_closure_date = (SELECT closure_date FROM flow_api.closure_date_records WHERE status='enabled' AND month = @prev_quarter_last_month AND country_code=@country_code);
+
+-- 5️⃣ Get forex rate for UGX to USD conversion
+SET @forex_rate = (SELECT forex_rate FROM forex_rates WHERE base = 'UGX' AND quote = 'USD' AND DATE(forex_date) = @last_day);
+
+-- 6️⃣ Active customers (30-day activity within the quarter)
 WITH active_cust AS (
     SELECT DISTINCT
         l.cust_id AS cust_id
@@ -42,40 +54,50 @@ WITH active_cust AS (
         AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
         AND disabled_cust.record_code IS NULL
 )
+-- 7️⃣ Main query for the specific quarter with forex conversion
 SELECT
-  SUM(l.loan_principal) Repaid_loan_amt
+    CONCAT('Q', @quarter, ' ', @year) as 'Quarter',
+    SUM(t.amount) as 'Loan Disbursed to Active Customers (UGX)',
+    @forex_rate as 'Forex Rate (UGX/USD)',
+    CASE 
+        WHEN @forex_rate IS NOT NULL AND @forex_rate > 0 
+        THEN SUM(t.amount) * @forex_rate 
+        ELSE NULL 
+    END as 'Loan Disbursed to Active Customers (USD)'
 FROM
-  loans l,
-  loan_txns t
+    loans l
+JOIN
+    loan_txns t ON l.loan_doc_id = t.loan_doc_id
 WHERE
-  l.loan_doc_id = t.loan_doc_id
-  and l.status NOT IN(
-    'voided',
-    'hold',
-    'pending_disbursal',
-    'pending_mnl_dsbrsl'
-  )
-  AND l.product_id NOT IN(43, 75, 300)
-  and txn_type = 'disbursal'
-  AND l.country_code = 'UGA'
-  and
-  (
-      (
-        date(txn_date) >= @first_day and date(txn_date) <= @last_day
-        and realization_date <= @closure_date
-      ) or (
-        date(txn_date) <= @first_day
-        and realization_date > @prev_closure_date and realization_date <= @closure_date
-      )
+    l.loan_doc_id = t.loan_doc_id
+    AND l.status NOT IN (
+        'voided',
+        'hold',
+        'pending_disbursal',
+        'pending_mnl_dsbrsl'
     )
-  and product_id not in(
-    select
-      id
-    from
-      loan_products
-    where
-      product_type = 'float_vending'
-  )
-  and cust_id in (select cust_id from active_cust)
+    AND l.product_id NOT IN (43, 75, 300)
+    AND t.txn_type = 'disbursal'
+    AND l.country_code = @country_code
+    AND (
+        (
+            DATE(t.txn_date) >= @first_day 
+            AND DATE(t.txn_date) <= @last_day
+            AND t.realization_date <= @closure_date
+        ) OR (
+            DATE(t.txn_date) <= @first_day
+            AND t.realization_date > @prev_closure_date 
+            AND t.realization_date <= @closure_date
+        )
+    )
+    AND l.product_id NOT IN (
+        SELECT
+            id
+        FROM
+            loan_products
+        WHERE
+            product_type = 'float_vending'
+    )
+    AND l.cust_id IN (SELECT cust_id FROM active_cust)
 GROUP BY
-  l.country_code;
+    l.country_code;
