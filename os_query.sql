@@ -25,7 +25,7 @@
     (
       select 
         l.loan_doc_id, 
-        loan_principal principal 
+        sum(amount) principal 
       from 
         loans l 
         JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id 
@@ -39,19 +39,7 @@
           'voided', 'hold', 'pending_disbursal', 
           'pending_mnl_dsbrsl'
         ) 
-        and l.loan_doc_id not in (
-          select 
-            loan_doc_id 
-          from 
-            loan_write_off 
-          where 
-            l.country_code = @country_code 
-            and date(write_off_date) <= @last_day 
-            and write_off_status in (
-              'approved', 'partially_recovered', 
-              'recovered'
-            )
-        )
+        group by loan_doc_id
     ) pri 
     left join (
       select 
@@ -70,19 +58,6 @@
         and l.status not in (
           'voided', 'hold', 'pending_disbursal', 
           'pending_mnl_dsbrsl'
-        ) 
-        and l.loan_doc_id not in (
-          select 
-            loan_doc_id 
-          from 
-            loan_write_off 
-          where 
-            l.country_code = @country_code 
-            and date(write_off_date) <= @last_day 
-            and write_off_status in (
-              'approved', 'partially_recovered', 
-              'recovered'
-            )
         ) 
       group by 
         l.loan_doc_id
