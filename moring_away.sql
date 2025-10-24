@@ -1,4 +1,4 @@
-set @month = '202504';
+set @month = '202509';
   set @country_code = 'UGA';
 
   set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
@@ -60,7 +60,7 @@ set @month = '202504';
     ) AS par_121_359, 
     SUM(
       IF(
-        DATEDIFF(@last_day, l.due_date) > 360, 
+        DATEDIFF(@last_day, l.due_date) >= 360, 
         if(
           l.loan_principal - t.total_amount > 0, 
           l.loan_principal - t.total_amount, 
