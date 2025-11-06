@@ -1,4 +1,5 @@
 set @month = '202412';
+set @country_code = 'RWA'
 
 with
     custInMonth as (
@@ -7,7 +8,7 @@ with
       from
         loans l
       where
-        l.country_code = "UGA"
+        l.country_code = @country_code
         and extract(
           year_month
           from
@@ -55,7 +56,7 @@ with
       left join borrowers bo on bo.cust_id = b.cust_id
       left join persons p on p.id = bo.owner_person_id
       where
-        l.country_code = "UGA"
+        l.country_code = @country_code
         and extract(
           year_month
           from
