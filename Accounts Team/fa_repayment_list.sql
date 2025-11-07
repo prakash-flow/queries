@@ -4,8 +4,8 @@ SET @country_code = 'UGA';
 SET @month_date = DATE(CONCAT(@month, '01'));
 SET @start_date = CONCAT(@month_date, ' 00:00:00');
 SET @end_date   = CONCAT(LAST_DAY(@month_date), ' 23:59:59');
--- SET @loan_purpose = "float_advance,terminal_financing";
-SET @loan_purpose = "adj_float_advance";
+SET @loan_purpose = "float_advance,terminal_financing";
+-- SET @loan_purpose = "adj_float_advance";
 
 SET @closure_date = (
     SELECT closure_date
@@ -24,8 +24,8 @@ SET @prev_closure_date = (
 );
 
 select 
-  @month AS `realization_month (report month)`, 
-  l.loan_doc_id AS Unique_ID, 
+  @month AS `Realization_month (report month)`, 
+  l.loan_doc_id AS `Unique ID`, 
   t.to_ac_id `To Acc ID`, 
   a.acc_number AS `Account Number`, 
   t.txn_id AS `Transaction ID`, 

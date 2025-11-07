@@ -3,6 +3,8 @@ set @month = '202510';
 
 set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 set @realization_date = (IFNULL((select closure_date from closure_date_records where month = @month and status = 'enabled' and country_code = @country_code), now()));
+-- SET @loan_purpose = "float_advance,terminal_financing";
+SET @loan_purpose = "adj_float_advance";
 
 select @last_day, @realization_date;
 
@@ -40,6 +42,7 @@ from
     where 
       lt.txn_type in ('disbursal') 
       and realization_date <= @realization_date 
+      AND FIND_IN_SET(l.loan_purpose, @loan_purpose)
       and l.country_code = @country_code 
       and date(disbursal_date) <= @last_day 
       and product_id not in (43, 75, 300) 
@@ -76,6 +79,7 @@ from
       and date(disbursal_Date) <= @last_day 
       and product_id not in (43, 75, 300) 
       and realization_date <= @realization_date 
+      AND FIND_IN_SET(l.loan_purpose, @loan_purpose)
       and date(txn_date) <= @last_day 
       and txn_type = 'payment' 
       and l.status not in (

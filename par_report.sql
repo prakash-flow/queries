@@ -16,7 +16,8 @@ WITH loan_principal AS (
     SELECT 
         l.loan_doc_id,
         l.loan_purpose,
-        SUM(lt.amount) AS loan_principal,
+        l.loan_principal AS loan_principal,
+        l.flow_fee AS flow_fee,
         l.due_date
     FROM loans l
     JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
@@ -39,7 +40,8 @@ WITH loan_principal AS (
 loan_payments AS (
     SELECT 
         loan_doc_id,
-        SUM(CASE WHEN txn_type = 'payment' THEN principal ELSE 0 END) AS total_amount
+        SUM(CASE WHEN txn_type = 'payment' THEN principal ELSE 0 END) AS total_principal,
+        SUM(CASE WHEN txn_type = 'payment' THEN fee ELSE 0 END) AS total_fee
     FROM loan_txns
     WHERE DATE(txn_date) <= @last_day
       AND realization_date <= @realization_date
