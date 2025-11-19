@@ -54,7 +54,7 @@ filtered_loans AS (
         lp.loan_purpose,
         lp.loan_principal,
         lp.due_date,
-        COALESCE(p.total_amount, 0) AS total_paid
+        COALESCE(p.total_principal, 0) AS total_paid
     FROM loan_principal lp
     LEFT JOIN loan_payments p ON p.loan_doc_id = lp.loan_doc_id
 )

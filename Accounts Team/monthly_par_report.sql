@@ -1,6 +1,5 @@
 SET @month = '202510';
 SET @country_code = 'UGA';
--- SET @loan_purpose = 'business'; -- uncomment if filtering by purpose
 
 SET @last_day = LAST_DAY(DATE(CONCAT(@month, "01")));
 SET @realization_date = (
@@ -21,7 +20,6 @@ WITH loan_principal AS (
   FROM loans l
   JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
   WHERE lt.txn_type = 'disbursal'
-    -- AND l.loan_purpose = @loan_purpose        -- optional filter
     AND l.country_code = @country_code
     AND DATE(lt.txn_date) <= @last_day
     AND lt.realization_date <= @realization_date
