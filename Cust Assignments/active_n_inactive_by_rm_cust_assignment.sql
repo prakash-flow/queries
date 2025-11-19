@@ -1,4 +1,4 @@
-SET @month = '202503';
+SET @month = '202509';
 SET @country_code = 'UGA';
 SET @last_day = LAST_DAY(DATE(CONCAT(@month, '01')));
 
@@ -63,9 +63,11 @@ customers_with_rm AS (
     LEFT JOIN recentReassignments r ON r.cust_id = l.cust_id
 )
 SELECT
-		@month `Month`,
+	@month `Month`,
     rm_id `RM ID`,
+    p.full_name `Full Name`,
     COUNT(DISTINCT CASE WHEN DATEDIFF(@last_day, last_txn_date) <= 30 THEN cust_id END) AS `Active Customer`,
     COUNT(DISTINCT CASE WHEN DATEDIFF(@last_day, last_txn_date) > 30 THEN cust_id END) AS `Inactive Customer`
-FROM customers_with_rm
+FROM customers_with_rm rm
+LEFT JOIN persons p ON rm.rm_id = p.id
 GROUP BY rm_id;
