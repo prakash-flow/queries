@@ -1,11 +1,11 @@
-SET @month = '202510';
+SET @month = '202511';
 SET @country_code = 'UGA';
 
 SET @month_date = DATE(CONCAT(@month, '01'));
 SET @start_date = CONCAT(@month_date, ' 00:00:00');
 SET @end_date   = CONCAT(LAST_DAY(@month_date), ' 23:59:59');
-SET @loan_purpose = "float_advance,terminal_financing";
--- SET @loan_purpose = "adj_float_advance";
+-- SET @loan_purpose = "float_advance,terminal_financing";
+SET @loan_purpose = "adj_float_advance";
 
 SET @closure_date = (
     SELECT closure_date

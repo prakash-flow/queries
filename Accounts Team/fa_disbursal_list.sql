@@ -1,11 +1,11 @@
-SET @month = '202510';
+SET @month = '202511';
 SET @country_code = 'UGA';
 
 SET @month_date = DATE(CONCAT(@month, '01'));
 SET @start_date = CONCAT(@month_date, ' 00:00:00');
 SET @end_date   = CONCAT(LAST_DAY(@month_date), ' 23:59:59');
-SET @loan_purpose = "float_advance,terminal_financing";
--- SET @loan_purpose = "adj_float_advance";
+-- SET @loan_purpose = "float_advance,terminal_financing";
+SET @loan_purpose = "adj_float_advance";
   
 SET @closure_date = (
     SELECT closure_date
@@ -25,7 +25,7 @@ SET @prev_closure_date = (
 
 
 select 
-  @month AS `Realization_month (report month)`, 
+  @month AS `Realization Month (Report Month)`, 
   l.loan_doc_id AS `Unique ID`, 
   a.acc_number AS `Account Number`, 
   t.txn_id AS `Tranaction ID`, 
@@ -36,12 +36,12 @@ select
   l.provisional_penalty AS `Initial Penalty`, 
   l.due_date AS `Due Date`, 
   l.duration as `No of days (Loan Duration)`, 
-  l.paid_date as `paid date`, 
-  l.paid_excess AS `Paid Excess`, 
+  COALESCE(l.paid_date, '') as `Paid date`, 
+  COALESCE(l.paid_excess, 0) AS `Paid Excess`, 
   l.penalty_collected `Penalty Collected`, 
   l.penalty_waived as `penalty waived`, 
-  l.fee_waived as `fee waived`, 
-  CASE WHEN l.status NOT IN ('ongoing', 'due', 'settled') THEN DATEDIFF(NOW(), l.due_date) ELSE NULL END AS Par, 
+  COALESCE(l.fee_waived, 0) as `Fee waived`, 
+  CASE WHEN l.status NOT IN ('ongoing', 'due', 'settled') THEN DATEDIFF(NOW(), l.due_date) ELSE 0 END AS Par, 
   l.status AS loan_status 
 from 
   loans l 
