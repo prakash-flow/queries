@@ -97,9 +97,9 @@ WITH
   metricByLoan as (
     SELECT
     	pri.sales_doc_id,
-      pri.duplicate dup,
-      ifnull(sec.duplicate_reversal, 0) rev,
-      if(pri.duplicate - ifnull(sec.duplicate_reversal, 0) > 0, pri.duplicate - ifnull(sec.duplicate_reversal, 0), 0) unrev
+      IFNULL(pri.duplicate, 0) dup,
+      IFNULL(sec.duplicate_reversal, 0) rev,
+      IF(IFNULL(pri.duplicate, 0) - IFNULL(sec.duplicate_reversal, 0) > 0, IFNULL(pri.duplicate, 0) - IFNULL(sec.duplicate_reversal, 0), 0) unrev
     FROM
       pri
       LEFT JOIN sec ON pri.sales_doc_id = sec.sales_doc_id
@@ -108,9 +108,9 @@ WITH
     UNION
     SELECT
     	sec.sales_doc_id,
-      pri.duplicate dup,
-      ifnull(sec.duplicate_reversal, 0) rev,
-      if(pri.duplicate - ifnull(sec.duplicate_reversal, 0) > 0, pri.duplicate - ifnull(sec.duplicate_reversal, 0), 0) unrev
+      IFNULL(pri.duplicate, 0) dup,
+      IFNULL(sec.duplicate_reversal, 0) rev,
+      IF(IFNULL(pri.duplicate, 0) - IFNULL(sec.duplicate_reversal, 0) > 0, IFNULL(pri.duplicate, 0) - IFNULL(sec.duplicate_reversal, 0), 0) unrev
     FROM
       pri
       RIGHT JOIN sec ON pri.sales_doc_id = sec.sales_doc_id

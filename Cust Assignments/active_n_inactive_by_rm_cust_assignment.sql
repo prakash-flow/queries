@@ -51,7 +51,7 @@ latest_txn AS (
 ),
 customers_with_rm AS (
     SELECT
-        COALESCE(r.from_rm_id, l.flow_rel_mgr_id) AS rm_id,
+        COALESCE(r.from_rm_id, l.flow_rel_mgr_id, 0) AS rm_id,
         lt.cust_id,
         lt.last_txn_date
     FROM latest_txn lt

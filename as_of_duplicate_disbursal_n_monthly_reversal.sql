@@ -1,8 +1,8 @@
 -- =========================
 -- VARIABLES
 -- =========================
-SET @month = 202411;
-SET @country_code = 'RWA';
+SET @month = 202502;
+SET @country_code = 'UGA';
 
 SET @closure_date = (
     SELECT closure_date
@@ -33,13 +33,10 @@ sales_pri AS (
         SUM(lt.amount) AS duplicate
     FROM sales l
     JOIN sales_txns lt ON lt.sales_doc_id = l.sales_doc_id
-    WHERE lt.txn_type IN ('duplicate_disbursal','duplicate_payment_reversal')
+    WHERE lt.txn_type IN ('duplicate_disbursal')
       AND l.country_code = @country_code
       AND (
-            (EXTRACT(YEAR_MONTH FROM lt.txn_date) = @month
-             AND lt.realization_date <= @closure_date)
-         OR (EXTRACT(YEAR_MONTH FROM lt.txn_date) < @month
-             AND lt.realization_date > @prev_closure_date
+            (EXTRACT(YEAR_MONTH FROM lt.txn_date) <= @month
              AND lt.realization_date <= @closure_date)
       )
     GROUP BY l.sales_doc_id
@@ -50,7 +47,7 @@ sales_sec AS (
         SUM(lt.amount) AS duplicate_reversal
     FROM sales l
     JOIN sales_txns lt ON lt.sales_doc_id = l.sales_doc_id
-    WHERE lt.txn_type IN ('dup_disb_rvrsl','duplicate_payment')
+    WHERE lt.txn_type IN ('dup_disb_rvrsl')
       AND l.country_code = @country_code
       AND (
             (EXTRACT(YEAR_MONTH FROM lt.txn_date) = @month
@@ -109,13 +106,10 @@ sales_result AS (
         SUM(lt.amount) AS duplicate
     FROM loans l
     JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
-    WHERE lt.txn_type IN ('duplicate_disbursal','duplicate_payment_reversal')
+    WHERE lt.txn_type IN ('duplicate_disbursal')
       AND l.country_code = @country_code
       AND (
-            (EXTRACT(YEAR_MONTH FROM lt.txn_date) = @month
-             AND lt.realization_date <= @closure_date)
-         OR (EXTRACT(YEAR_MONTH FROM lt.txn_date) < @month
-             AND lt.realization_date > @prev_closure_date
+            (EXTRACT(YEAR_MONTH FROM lt.txn_date) <= @month
              AND lt.realization_date <= @closure_date)
       )
       AND l.product_id NOT IN (
@@ -130,7 +124,7 @@ loan_sec AS (
         SUM(lt.amount) AS duplicate_reversal
     FROM loans l
     JOIN loan_txns lt ON lt.loan_doc_id = l.loan_doc_id
-    WHERE lt.txn_type IN ('dup_disb_rvrsl','duplicate_payment')
+    WHERE lt.txn_type IN ('dup_disb_rvrsl')
       AND l.country_code = @country_code
       AND (
             (EXTRACT(YEAR_MONTH FROM lt.txn_date) = @month

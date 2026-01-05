@@ -1,12 +1,8 @@
-# PAYABLE TXN
-# 1. payment - excess
-# 2. excess_reversal
-
 set
-    @month = 202412;
+    @month = 202511;
 
   set
-    @country_code = 'RWA';
+    @country_code = 'UGA';
 
   set
     @closure_date = (
@@ -59,16 +55,7 @@ set
               year_month
               from
                 txn_date
-            ) = @month
-            AND realization_date <= @closure_date
-          )
-          OR (
-            extract(
-              year_month
-              from
-                txn_date
-            ) < @month
-            AND realization_date > @prev_closure_date
+            ) <= @month
             AND realization_date <= @closure_date
           )
         )
@@ -108,16 +95,7 @@ set
               year_month
               from
                 txn_date
-            ) = @month
-            AND realization_date <= @closure_date
-          )
-          OR (
-            extract(
-              year_month
-              from
-                txn_date
-            ) < @month
-            AND realization_date > @prev_closure_date
+            ) <= @month
             AND realization_date <= @closure_date
           )
         )
@@ -163,7 +141,7 @@ set
     ),
     loan_date as (
       select
-      	@month `Month`,
+      	LAST_DAY(DATE(CONCAT(@month, '01'))) `As OF`,
         m.loan_doc_id `Loan ID`,
         l.cust_id `Customer ID`,
         l.acc_prvdr_code `Account Provider Code`,
