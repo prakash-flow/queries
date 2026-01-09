@@ -79,7 +79,7 @@ WITH disbursals AS (
 payments AS (
   SELECT
     l.loan_doc_id,
-    SUM(t.amount) AS partial_pay
+    SUM(t.orincipal) AS partial_pay
   FROM loans l
   JOIN loan_txns t ON l.loan_doc_id = t.loan_doc_id
   WHERE t.txn_type = 'payment'

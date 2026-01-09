@@ -26,7 +26,7 @@ WITH loan AS (
     FROM loans l
     JOIN loan_txns lt
         ON lt.loan_doc_id = l.loan_doc_id
-    WHERE lt.txn_type IN ('disbursal', 'af_disbursal')
+    WHERE lt.txn_type IN ('af_disbursal')
       AND l.loan_purpose IN ('growth_financing', 'asset_financing')
       AND l.country_code = @country_code
       AND DATE(disbursal_date) <= @last_day
