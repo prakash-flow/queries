@@ -30,7 +30,7 @@ WHERE
       product_type = 'float_vending'
   ) 
   and l.country_code = @country_code 
-  and txn_type = 'disbursal' 
+  and txn_type in ('disbursal', 'af_disbursal') 
   and extract(year_month from disbursal_date) between @start_month 
   and @end_month
 GROUP BY 

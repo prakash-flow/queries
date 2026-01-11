@@ -1,6 +1,6 @@
 set @country_code = 'RWA';
-Set @start_month = '202401';
-set @end_month = '202412';
+Set @start_month = '202501';
+set @end_month = '202512';
 
 set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 select @country_code, @start_month, @end_month, @last_day;
@@ -41,3 +41,4 @@ FROM
       and @end_month
     having age <= 35
   ) as T;
+  

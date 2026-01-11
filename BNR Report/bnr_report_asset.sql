@@ -130,7 +130,8 @@ SELECT
   '' AS is_ontime_repaid,
   'Growing Mobile Money Business' AS purpose_of_loan,
   '' AS branch_name,
-  '' AS `Physical Guarantee(Collateral)`,
+  '' AS `Collateral Type`,
+  '' AS `Guarantee(Collateral) Ammount`,
   '' AS district,
   '' AS sector,
   '' AS cell,
@@ -149,7 +150,7 @@ SELECT
   fd.first_due_date AS `Agreed Date of First Payment (Principal)`,
   lp.last_payment_date AS `Date of Last Payment (Principal)`,
 
-  '' AS arrear_start,
+  l.min_overdue_due_date AS arrear_start,
   @last_day AS report_date,
   number_of_installments,
 
@@ -157,12 +158,12 @@ SELECT
   IFNULL(pic.os_installment_count,0) AS os_installment_count,
   `paid_principal`,
   l.loan_os AS net_principal,
-  '' `Security/Compulsory Savings`,
+  '' `Eligible Collateral provided`,
   l.loan_os AS net_principal,
-  GREATEST(CASE
+  CASE
     WHEN l.loan_os = 0 OR l.min_overdue_due_date IS NULL THEN 0
     ELSE DATEDIFF(@last_day,l.min_overdue_due_date)
-  END, 0) AS od_days
+  END AS od_days
 
 FROM disbursals d
 JOIN loan_level_os l ON d.loan_doc_id=l.loan_doc_id
@@ -175,4 +176,4 @@ WHERE
   AND CASE
         WHEN l.loan_os = 0 OR l.min_overdue_due_date IS NULL THEN 0
         ELSE DATEDIFF(@last_day,l.min_overdue_due_date)
-      END <= 0;
+      END BETWEEN 1 AND 89;
