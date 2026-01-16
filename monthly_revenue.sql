@@ -43,7 +43,7 @@ SELECT
     JOIN 
         loan_txns t ON l.loan_doc_id = t.loan_doc_id
     LEFT JOIN 
-        loan_write_off w ON l.loan_doc_id = w.loan_doc_id AND DATE(w.write_off_date) <= @last_day
+        loan_write_off w ON l.loan_doc_id = w.loan_doc_id AND DATE(w.write_off_date) < @last_day
     WHERE 
         l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
         AND l.product_id NOT IN (43, 75, 300)
