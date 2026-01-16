@@ -62,7 +62,7 @@ loan_installment AS (
         principal_due AS installment_principal,
         due_date
     FROM loan_installments
-    WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan) AND EXTRACT(YEAR_MONTH FROM due_date) <= @month
+    WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan)
 ),
 
 payment AS (
@@ -113,7 +113,7 @@ loan_level_os AS (
 
         /* Earliest overdue installment due date */
         MIN(CASE
-            WHEN os_amount > 0
+            WHEN os_amount > 0 AND DATE(due_date) <= @last_day
             THEN due_date
         END) AS min_overdue_due_date
     FROM installment_os

@@ -1,4 +1,4 @@
-SET @country_code = 'UGA';
+SET @country_code = 'RWA';
 SET @month = '202512';
 SET @last_day = (SELECT LAST_DAY(DATE(CONCAT(@month, '01'))));
 SET @closure_date = (

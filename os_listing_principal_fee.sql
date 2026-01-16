@@ -45,7 +45,7 @@ payments as (
  	group by l.loan_doc_id
 ),
 parsedLoans as (
-	select
+select
     l.country_code,
   	pri.loan_doc_id,
     l.acc_prvdr_code,
