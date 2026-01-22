@@ -62,6 +62,8 @@ payment_allocation AS (
         SUM(p.principal_amount) paid_principal
     FROM payment_allocation_items p
     JOIN account_stmts a ON a.id=p.account_stmt_id
+    JOIN loan_installments li
+    ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
       AND DATE(a.stmt_txn_date)<=@last_day

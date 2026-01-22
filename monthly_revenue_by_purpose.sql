@@ -26,7 +26,8 @@ SELECT @currency, @month, @prev_month, @last_day, @closure_date, @prev_closure_d
 
 
 SELECT
-				l.loan_purpose,
+		l.loan_purpose,
+        COUNT(DISTINCT l.cust_id) customer_count,
         SUM(
             CASE 
                 WHEN w.loan_doc_id IS NULL THEN IFNULL(t.fee, 0) + IFNULL(t.penalty, 0)
@@ -35,7 +36,8 @@ SELECT
         ) +
         SUM(
             CASE 
-                WHEN w.loan_doc_id IS NOT NULL THEN IFNULL(t.amount, 0)
+                WHEN w.loan_doc_id IS NOT NULL AND DATE(txn_date) > write_off_date THEN IFNULL(t.amount, 0)
+                WHEN w.loan_doc_id IS NOT NULL AND DATE(txn_date) <= write_off_date THEN IFNULL(t.fee, 0) + IFNULL(t.penalty, 0)
                 ELSE 0
             END
         ) AS revenue

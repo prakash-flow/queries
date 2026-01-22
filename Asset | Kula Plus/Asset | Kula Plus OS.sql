@@ -46,7 +46,6 @@ loan_installment AS (
         SUM(principal_due) AS total_principal_receivable
     FROM loan_installments
     WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan)
-      AND EXTRACT(YEAR_MONTH FROM due_date) <= @month
     GROUP BY loan_doc_id
 ),
 

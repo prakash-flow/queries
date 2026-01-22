@@ -1,6 +1,3 @@
-/* ===============================
-   Parameters
-================================ */
 SET @country_code = 'UGA';
 SET @month = '202512';
 
@@ -73,6 +70,8 @@ payment AS (
     FROM payment_allocation_items p
     JOIN account_stmts a
         ON a.id = p.account_stmt_id
+    JOIN loan_installments li
+        ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
       AND p.country_code = @country_code
@@ -94,7 +93,7 @@ installment_os AS (
         ) AS os_amount
     FROM loan l
     JOIN loan_installment li
-        ON li.loan_doc_id = l.loan_doc_id
+        ON li.loan_doc_id = l.loan_doc_id 
     LEFT JOIN payment p
         ON p.loan_doc_id = li.loan_doc_id
        AND p.installment_number = li.installment_number
@@ -113,7 +112,7 @@ loan_level_os AS (
 
         /* Earliest overdue installment due date */
         MIN(CASE
-            WHEN os_amount > 0
+            WHEN os_amount > 0 AND DATE(due_date) <= @last_day
             THEN due_date
         END) AS min_overdue_due_date
     FROM installment_os

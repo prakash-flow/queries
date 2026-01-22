@@ -62,7 +62,7 @@ loan_installment AS (
         due_date,
         installment_number
     FROM loan_installments
-    WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan) AND EXTRACT(YEAR_MONTH FROM due_date) <= @month
+    WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan) 
 ),
 
 payment AS (

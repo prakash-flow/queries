@@ -34,7 +34,8 @@ SELECT
         ) +
         SUM(
             CASE 
-                WHEN w.loan_doc_id IS NOT NULL THEN IFNULL(t.amount, 0)
+                WHEN w.loan_doc_id IS NOT NULL AND DATE(txn_date) > write_off_date THEN IFNULL(t.amount, 0)
+                WHEN w.loan_doc_id IS NOT NULL AND DATE(txn_date) <= write_off_date THEN IFNULL(t.fee, 0) + IFNULL(t.penalty, 0)
                 ELSE 0
             END
         ) AS revenue
@@ -47,7 +48,7 @@ SELECT
     WHERE 
         l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
         AND l.product_id NOT IN (43, 75, 300)
-        AND t.txn_type = 'payment'
+        AND t.txn_type in ('payment')
         AND (
             (EXTRACT(YEAR_MONTH FROM t.txn_date) = @month AND t.realization_date <= @closure_date)
             OR 

@@ -1,7 +1,7 @@
-set @country_code = 'UGA';
+set @country_code = 'RWA';
 
 SELECT
-  l.cust_id,
+  loan_purpose,
   ROUND(
     100 * SUM(
       CASE
@@ -32,9 +32,9 @@ FROM
   ) t ON l.loan_doc_id = t.loan_doc_id
 WHERE
   l.status = 'settled'
-  AND l.paid_date <= '2025-09-11 23:59:59'
-  AND l.product_id NOT IN(43, 75, 300)
-  AND l.status NOT IN(
+  AND l.paid_date <= '2025-12-31 23:59:59'
+  AND l.product_id NOT IN (43, 75, 300)
+  AND l.status NOT IN (
     'voided',
     'hold',
     'pending_disbursal',
@@ -42,4 +42,4 @@ WHERE
   )
  AND l.country_code = @country_code
 GROUP BY
-  l.cust_id
+  l.loan_purpose
