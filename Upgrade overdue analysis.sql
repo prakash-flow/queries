@@ -40,39 +40,39 @@ loan_stats AS (
     MAX(l.loan_principal) - lc.prev_loan_principal AS loan_book_increased,
     SUM(l.loan_principal - lc.prev_loan_principal) AS loan_book_increased_by_upgrade,
 
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 500000 THEN 1 END), 0) AS par_10_count_500K,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 500000 THEN l.loan_principal END), 0) AS par_10_value_500k,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 750000 THEN 1 END), 0) AS par_10_count_750K,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 750000 THEN l.loan_principal END), 0) AS par_10_value_750k,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 1000000 THEN 1 END), 0) AS par_10_count_1M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 1000000 THEN l.loan_principal END), 0) AS par_10_value_1M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 1500000 THEN 1 END), 0) AS par_10_count_1_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 1500000 THEN l.loan_principal END), 0) AS par_10_value_1_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 2000000 THEN 1 END), 0) AS par_10_count_2M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 2000000 THEN l.loan_principal END), 0) AS par_10_value_2M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 2500000 THEN 1 END), 0) AS par_10_count_2_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 2500000 THEN l.loan_principal END), 0) AS par_10_value_2_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 3000000 THEN 1 END), 0) AS par_10_count_3M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 3000000 THEN l.loan_principal END), 0) AS par_10_value_3M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 4000000 THEN 1 END), 0) AS par_10_count_4M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.loan_principal = 4000000 THEN l.loan_principal END), 0) AS par_10_value_4M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 500000 THEN 1 END), 0) AS par_10_count_500K,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 500000 THEN l.loan_principal END), 0) AS par_10_value_500k,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 750000 THEN 1 END), 0) AS par_10_count_750K,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 750000 THEN l.loan_principal END), 0) AS par_10_value_750k,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 1000000 THEN 1 END), 0) AS par_10_count_1M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 1000000 THEN l.loan_principal END), 0) AS par_10_value_1M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 1500000 THEN 1 END), 0) AS par_10_count_1_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 1500000 THEN l.loan_principal END), 0) AS par_10_value_1_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 2000000 THEN 1 END), 0) AS par_10_count_2M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 2000000 THEN l.loan_principal END), 0) AS par_10_value_2M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 2500000 THEN 1 END), 0) AS par_10_count_2_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 2500000 THEN l.loan_principal END), 0) AS par_10_value_2_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 3000000 THEN 1 END), 0) AS par_10_count_3M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 3000000 THEN l.loan_principal END), 0) AS par_10_value_3M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 4000000 THEN 1 END), 0) AS par_10_count_4M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.loan_principal = 4000000 THEN l.loan_principal END), 0) AS par_10_value_4M,
   
-  	IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 500000 THEN 1 END), 0) AS crnt_par_10_count_500K,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_500k,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 750000 THEN 1 END), 0) AS crnt_par_10_count_750K,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 750000 THEN l.loan_principal END), 0) AS crnt_par_10_value_750k,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1000000 THEN 1 END), 0) AS crnt_par_10_count_1M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_1M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1500000 THEN 1 END), 0) AS crnt_par_10_count_1_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_1_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2000000 THEN 1 END), 0) AS crnt_par_10_count_2M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_2M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2500000 THEN 1 END), 0) AS crnt_par_10_count_2_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_2_5M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 3000000 THEN 1 END), 0) AS crnt_par_10_count_3M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 3000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_3M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 4000000 THEN 1 END), 0) AS crnt_par_10_count_4M,
-    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-07-22'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 4000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_4M
+  	IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 500000 THEN 1 END), 0) AS crnt_par_10_count_500K,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_500k,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 750000 THEN 1 END), 0) AS crnt_par_10_count_750K,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 750000 THEN l.loan_principal END), 0) AS crnt_par_10_value_750k,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1000000 THEN 1 END), 0) AS crnt_par_10_count_1M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_1M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1500000 THEN 1 END), 0) AS crnt_par_10_count_1_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 1500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_1_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2000000 THEN 1 END), 0) AS crnt_par_10_count_2M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_2M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2500000 THEN 1 END), 0) AS crnt_par_10_count_2_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 2500000 THEN l.loan_principal END), 0) AS crnt_par_10_value_2_5M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 3000000 THEN 1 END), 0) AS crnt_par_10_count_3M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 3000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_3M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 4000000 THEN 1 END), 0) AS crnt_par_10_count_4M,
+    IFNULL(SUM(CASE WHEN DATEDIFF(IFNULL(l.paid_date, '2025-12-31'), l.due_date) > 10 AND l.paid_date IS NULL AND l.loan_principal = 4000000 THEN l.loan_principal END), 0) AS crnt_par_10_value_4M
 
   FROM limit_chain lc
   JOIN loans l ON l.cust_id = lc.cust_id
@@ -84,7 +84,7 @@ loan_stats AS (
         )
     AND l.loan_principal IS NOT NULL
     AND l.disbursal_date >= lc.current_repaid_date
-    AND l.disbursal_date < IFNULL(lc.next_repaid_date, '2025-07-22 23:59:59')
+    AND l.disbursal_date < IFNULL(lc.next_repaid_date, '2025-12-31 23:59:59')
     AND l.loan_principal > prev_limit
   GROUP BY lc.current_id, lc.cust_id, lc.prev_loan_principal
 )

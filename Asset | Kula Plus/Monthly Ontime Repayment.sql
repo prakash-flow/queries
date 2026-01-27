@@ -1,9 +1,5 @@
-SET @country_code = 'UGA';
-SET @month = '202512';
-
-SET @last_day = (
-    SELECT LAST_DAY(DATE(CONCAT(@month, '01')))
-);
+SET @month = 202512;
+SET @country_code = 'RWA';
 
 SET @closure_date = (
     SELECT closure_date
@@ -13,9 +9,6 @@ SET @closure_date = (
       AND country_code = @country_code
 );
 
-/* ===============================
-   CTEs
-================================ */
 WITH loan AS (
     SELECT
         l.loan_doc_id,
@@ -51,15 +44,17 @@ WITH loan AS (
       )
     GROUP BY l.loan_doc_id
 ),
-
+  
 loan_installment AS (
     SELECT
-        loan_doc_id,
-        installment_number,
-        principal_due + fee_due AS installment_due,
-        due_date
-    FROM loan_installments
-    WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan)
+        li.loan_doc_id,
+        li.installment_number,
+        li.principal_due + li.fee_due AS due,
+        li.due_date
+    FROM loan_installments li
+    WHERE li.country_code = @country_code
+      AND li.loan_doc_id IN (SELECT loan_doc_id FROM loan)
+      AND EXTRACT(YEAR_MONTH FROM li.due_date) <= @month
 ),
 
 payment AS (
@@ -70,31 +65,32 @@ payment AS (
     FROM payment_allocation_items p
     JOIN account_stmts a
         ON a.id = p.account_stmt_id
-    JOIN loan_installments li
-        ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
       AND p.country_code = @country_code
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number
-),
+)
 
-/* ===============================
-   Installment-level OS
-================================ */
-installment_os AS (
-    SELECT
-        l.loan_doc_id,
-        l.loan_purpose,
-        li.due_date,
-        GREATEST(
-            li.installment_principal - IFNULL(p.paid_principal, 0),
-            0
-        ) AS os_amount
-    FROM loan l
-    JOIN loan_installment li
-        ON li.loan_doc_id = l.loan_doc_id 
-    LEFT JOIN payment p
-        ON p.loan_doc_id = li.loan_doc_id
-       AND p.installment_number = li.installment_number
-),
+SELECT
+    lo.loan_purpose,
+    COUNT(*) AS total_due_installments,
+    SUM(
+        CASE 
+            WHEN IFNULL(p.paid_amount,0) >= l.due THEN 1 
+            ELSE 0 
+        END
+    ) AS ontime_installments,
+    ROUND(
+        SUM(CASE WHEN IFNULL(p.paid_amount,0) >= l.due THEN 1 ELSE 0 END)
+        * 100.0 / COUNT(*),
+        2
+    ) AS overall_ontime_percentage
+FROM loan_installment l
+JOIN loan lo
+    ON lo.loan_doc_id = l.loan_doc_id
+LEFT JOIN payment p
+    ON p.loan_doc_id = l.loan_doc_id
+   AND p.installment_number = l.installment_number
+GROUP BY lo.loan_purpose
+ORDER BY lo.loan_purpose;
