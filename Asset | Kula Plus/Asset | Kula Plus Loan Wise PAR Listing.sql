@@ -73,11 +73,13 @@ payment AS (
     FROM payment_allocation_items p
     JOIN account_stmts a
         ON a.id = p.account_stmt_id
+    JOIN loan_installments li
+        ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
       AND p.country_code = @country_code
       AND a.country_code = @country_code
-    GROUP BY p.loan_doc_id, installment_number
+    GROUP BY p.loan_doc_id, p.installment_number
 ),
 
 /* ===============================
@@ -96,9 +98,11 @@ installment_os AS (
         ) AS os_amount
     FROM loan l
     JOIN loan_installment li
-        ON li.loan_doc_id = l.loan_doc_id
+        ON li.loan_doc_id = l.loan_doc_id 
     LEFT JOIN payment p
-        ON p.loan_doc_id = li.loan_doc_id AND p.installment_number = li.installment_number
+        ON p.loan_doc_id = li.loan_doc_id
+       AND p.installment_number = li.installment_number
+  WHERE li.due_date <= @last_day
 ),
 
 /* ===============================
