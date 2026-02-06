@@ -428,7 +428,7 @@ WITH
       LEFT JOIN leads l ON l.account_num = cc.acc_number
       AND l.is_removed = 0
       AND l.self_reg_status = "pending_self_reg"
-      AND l.status <= "10_pending_rm_eval"
+      AND l.status <= "40_pending_kyc"
       LEFT JOIN accounts a ON a.acc_number = cc.acc_number
       AND a.is_removed = 0
     WHERE

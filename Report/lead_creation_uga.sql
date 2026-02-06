@@ -133,7 +133,7 @@ commission_data AS (
         ON l.account_num = cc.alt_acc_num
         AND l.is_removed = 0
         AND l.self_reg_status = 'pending_self_reg'
-        AND l.status <= '10_pending_rm_eval'
+        AND l.status <= '40_pending_kyc'
     LEFT JOIN accounts a
         ON a.alt_acc_num = cc.alt_acc_num
         AND a.is_removed = 0
