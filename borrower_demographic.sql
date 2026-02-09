@@ -5,8 +5,8 @@ set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
   
 with borrower as (
   select
-    sum(if(a.field_2 in ('kampala'), 0, 1)) as rural_count,
-    sum(if(p.gender in ('female', 'Female'), 1, 0)) as female_count,
+    sum(if(a.field_2 NOT IN ('kampala'), 0, 1)) as rural_count,
+    sum(if(p.gender IN ('female', 'Female'), 1, 0)) as female_count,
     count(b.id) as total_customer
   from
     borrowers b
