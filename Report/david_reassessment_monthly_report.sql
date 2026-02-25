@@ -1,0 +1,485 @@
+SET
+  @month = '202503';
+
+SET
+  @last_day = LAST_DAY(DATE(CONCAT(@month, '01')));
+
+SET
+  @country_code = 'UGA';
+
+SET
+  @prev_month = (
+    SELECT
+      DATE_FORMAT(
+        DATE_SUB(
+          STR_TO_DATE(CONCAT(@month, '01'), '%Y%m%d'),
+          INTERVAL 1 MONTH
+        ),
+        '%Y%m'
+      )
+  );
+
+WITH
+  -- Active Customers
+  reassessment_accounts AS (
+    WITH active_cust AS (
+        SELECT DISTINCT
+            l.cust_id AS cust_id
+        FROM loans l
+        JOIN loan_txns t ON l.loan_doc_id = t.loan_doc_id
+        LEFT JOIN (
+            SELECT DISTINCT
+                r1.record_code
+            FROM record_audits r1
+            JOIN (
+                SELECT
+                    record_code,
+                    MAX(id) AS id
+                FROM record_audits
+                WHERE DATE(created_at) <= @last_day
+                GROUP BY record_code
+            ) r2 ON r1.id = r2.id
+            WHERE JSON_EXTRACT(r1.data_after, '$.status') = 'disabled'
+        ) disabled_cust ON l.cust_id = disabled_cust.record_code
+        WHERE
+            DATEDIFF(@last_day, t.txn_date) <= 30
+            AND DATE(t.txn_date) <= @last_day
+            AND l.country_code = @country_code
+            AND l.loan_purpose = 'float_advance'
+            AND t.txn_type = 'disbursal'
+            AND l.product_id NOT IN (43, 75, 300)
+            AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+            AND disabled_cust.record_code IS NULL
+    HAVING 
+        cust_id IN (SELECT cust_id FROM accounts WHERE status = 'enabled' AND JSON_CONTAINS(acc_purpose, '"float_advance"') AND is_removed = 0 AND acc_prvdr_code = 'UMTN' AND DATE(created_at) <= @last_day)
+    )
+    SELECT 
+        @month as month,
+        a.id AS account_id,
+        a.cust_id,
+        a.acc_number,
+        a.alt_acc_num,
+        a.acc_prvdr_code,
+        a.is_primary_acc,
+        COALESCE(a.acc_purpose, JSON_ARRAY()) as acc_purpose,
+        COALESCE(a.cust_score_factors, JSON_ARRAY()) cust_score_factors,
+        IFNULL(jt.g_val, 0) monthly_comms,
+        a.acc_ownership,
+        COALESCE(a.conditions, JSON_ARRAY()),
+        IFNULL(MAX(limits.`limit`), 0)
+    FROM accounts a
+    JOIN active_cust e ON a.cust_id = e.cust_id
+    LEFT JOIN JSON_TABLE(
+        a.cust_score_factors,
+        "$[*]" COLUMNS (
+            csf_type VARCHAR(50) PATH "$.csf_type",
+            g_val BIGINT PATH "$.g_val"
+        )
+    ) AS jt ON jt.csf_type = 'monthly_comms'
+    LEFT JOIN JSON_TABLE(
+        a.conditions,
+        "$[*]" COLUMNS (
+            type VARCHAR(50) PATH "$.type",
+            `limit` BIGINT PATH "$.limit"
+        )
+    ) AS limits ON 1
+    WHERE a.is_removed = 0 AND a.status = 'enabled' AND EXTRACT(YEAR_MONTH FROM created_at) <= @month
+    GROUP BY 
+        a.id, a.cust_id, a.acc_number, a.alt_acc_num, a.acc_prvdr_code, 
+        a.is_primary_acc, a.cust_score_factors, a.acc_ownership, a.conditions, jt.g_val
+  ),
+
+  -- 1. RM Reassignment Data
+  recentReassignments AS (
+    SELECT
+      cust_id,
+      from_rm_id
+    FROM (
+      SELECT
+        cust_id,
+        from_rm_id,
+        ROW_NUMBER() OVER (
+          PARTITION BY cust_id
+          ORDER BY from_date ASC
+        ) rn
+      FROM rm_cust_assignments rm_cust
+      WHERE rm_cust.country_code = @country_code
+        AND rm_cust.reason_for_reassign NOT IN ('initial_assignment')
+        AND DATE(rm_cust.from_date) > @last_day
+    ) t
+    WHERE rn = 1
+  ),
+
+  -- 2. Customers
+  customers AS (
+    SELECT
+      COALESCE(r.from_rm_id, b.flow_rel_mgr_id) AS rm_id,
+      b.cust_id,
+      b.owner_person_id,
+      b.reg_date,
+      b.conditions,
+      a.field_1 region
+    FROM borrowers b
+    LEFT JOIN recentReassignments r ON r.cust_id = b.cust_id
+    LEFT JOIN address_info a ON a.id = b.owner_address_id
+    WHERE b.cust_id IN (
+      SELECT cust_id
+      FROM reassessment_accounts
+    )
+    AND b.country_code = @country_code
+  ),
+
+  customers_with_name AS (
+    SELECT
+      c.*,
+      CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name) AS customer_name
+    FROM customers c
+    LEFT JOIN persons p ON p.id = c.owner_person_id
+  ),
+
+  customers_with_rm AS (
+    SELECT
+      cwn.*,
+      rm.id AS rm_person_id,
+      CONCAT_WS(' ', rm.first_name, rm.middle_name, rm.last_name) AS rm_name
+    FROM customers_with_name cwn
+    LEFT JOIN persons rm ON rm.id = cwn.rm_id
+  ),
+
+  -- 3. Commission Data
+  commission_data AS (
+    SELECT
+      c.identifier,
+      MAX(
+        IF(
+          month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 3 MONTH), '%Y%m'),
+          commission,
+          0
+        )
+      ) AS before_3_month,
+      MAX(
+        IF(
+          month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 2 MONTH), '%Y%m'),
+          commission,
+          0
+        )
+      ) AS before_2_month,
+      MAX(
+        IF(
+          month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 1 MONTH), '%Y%m'),
+          commission,
+          0
+        )
+      ) AS before_1_month,
+      CAST(
+        IFNULL((
+          MAX(
+            IF(
+              month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 3 MONTH), '%Y%m'),
+              commission,
+              0
+            )
+          ) +
+          MAX(
+            IF(
+              month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 2 MONTH), '%Y%m'),
+              commission,
+              0
+            )
+          ) +
+          MAX(
+            IF(
+              month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month, '01')), INTERVAL 1 MONTH), '%Y%m'),
+              commission,
+              0
+            )
+          )
+        ) / 3, 0) AS UNSIGNED
+      ) AS average_comms
+    FROM cust_commissions c
+    WHERE c.identifier IN (
+      SELECT alt_acc_num
+      FROM reassessment_accounts
+    )
+    GROUP BY c.identifier
+  ),
+
+  account_comms AS (
+    SELECT
+      r.month,
+      r.cust_id,
+      r.account_id,
+      r.acc_prvdr_code,
+      r.acc_number,
+      r.alt_acc_num,
+      r.acc_ownership,
+      r.is_primary_acc,
+      CASE
+        WHEN r.acc_prvdr_code = 'UMTN' AND JSON_CONTAINS(acc_purpose, '"float_advance"') THEN COALESCE(c.average_comms, 0)
+        ELSE COALESCE(r.monthly_comms, 0)
+      END AS monthly_comms,
+      IFNULL(c.before_3_month, 0) AS before_3_month,
+      IFNULL(c.before_2_month, 0) AS before_2_month,
+      IFNULL(c.before_1_month, 0) AS before_1_month
+    FROM reassessment_accounts r
+    LEFT JOIN commission_data c ON c.identifier = r.alt_acc_num
+    WHERE r.month = @month
+  ),
+
+  primary_account_cte AS (
+    SELECT
+      a.cust_id,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(a.acc_prvdr_code ORDER BY a.is_primary_acc DESC, a.account_id ASC),
+        ',', 1
+      ) AS primary_acc_prvdr_code,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(a.acc_number ORDER BY a.is_primary_acc DESC, a.account_id ASC),
+        ',', 1
+      ) AS primary_acc_number,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(a.alt_acc_num ORDER BY a.is_primary_acc DESC, a.account_id ASC),
+        ',', 1
+      ) AS primary_alt_acc_num,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(a.acc_ownership ORDER BY a.is_primary_acc DESC, a.account_id ASC),
+        ',', 1
+      ) AS primary_acc_ownership,
+      SUBSTRING_INDEX(
+        GROUP_CONCAT(a.is_primary_acc ORDER BY a.is_primary_acc DESC, a.account_id ASC),
+        ',', 1
+      ) AS is_primary_acc,
+      SUM(a.monthly_comms) AS total_commission
+    FROM account_comms a
+    GROUP BY a.cust_id
+  ),
+
+  -- 4. Assessment Limit
+  assessment_limit_cte AS (
+    SELECT
+      pa.cust_id,
+      pa.total_commission,
+      pa.primary_acc_ownership,
+      CASE
+        WHEN pa.total_commission < 60000 THEN 0
+        WHEN pa.total_commission BETWEEN 60000 AND 119999 THEN 250000
+        WHEN pa.total_commission BETWEEN 120000 AND 179999 THEN 500000
+        WHEN pa.total_commission BETWEEN 180000 AND 249999 THEN 750000
+        WHEN pa.total_commission BETWEEN 250000 AND 349999 THEN 1000000
+        WHEN pa.total_commission BETWEEN 350000 AND 499999 THEN 1500000
+        WHEN pa.total_commission BETWEEN 500000 AND 649999 THEN 2000000
+        WHEN pa.total_commission BETWEEN 650000 AND 799999 THEN 2500000
+        WHEN pa.total_commission BETWEEN 800000 AND 999999 THEN 3000000
+        WHEN pa.total_commission BETWEEN 1000000 AND 1249999 THEN 4000000
+        WHEN pa.total_commission >= 1250000 THEN 5000000
+        ELSE 0
+      END AS assessment_limit
+    FROM primary_account_cte pa
+  ),
+
+  -- 5. Loan Records
+  loan_records AS (
+    SELECT *
+    FROM (
+      SELECT
+        l.cust_id,
+        l.loan_doc_id,
+        l.loan_principal,
+        l.status last_loan_status,
+        l.disbursal_date,
+        l.paid_date,
+        l.due_date,
+        EXTRACT(YEAR_MONTH FROM l.disbursal_date) AS loan_month,
+        ROW_NUMBER() OVER (
+          PARTITION BY l.cust_id
+          ORDER BY l.disbursal_date DESC
+        ) AS rn
+      FROM loans l
+      WHERE DATE(l.disbursal_date) <= @last_day
+        AND l.cust_id IN (
+          SELECT cust_id
+          FROM reassessment_accounts
+        )
+        AND l.loan_purpose = 'float_advance'
+        AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+        AND l.product_id NOT IN (43, 75, 300)
+    ) ranked_loans
+    WHERE rn = 1
+  ),
+
+  loan_txn AS (
+    SELECT
+      l.loan_doc_id,
+      COUNT(
+        CASE WHEN DATEDIFF(lt.txn_date, l.due_date) > 1 THEN 1 END
+      ) AS late_payment_count
+    FROM loans l
+    JOIN loan_txns lt ON l.loan_doc_id = lt.loan_doc_id
+    WHERE lt.txn_type = 'payment'
+      AND l.loan_purpose = 'float_advance'
+      AND DATE(lt.txn_date) <= @last_day
+      AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+      AND l.product_id NOT IN (43, 75, 300)
+    GROUP BY l.loan_doc_id
+  ),
+
+  par_loans AS (
+    SELECT
+      r.cust_id,
+      COUNT(l.id) AS par_5
+    FROM reassessment_accounts r
+    LEFT JOIN loans l ON l.cust_id = r.cust_id
+    WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+      AND l.product_id NOT IN (43, 75, 300)
+      AND r.month = @month
+      AND l.loan_purpose = 'float_advance'
+      AND DATEDIFF(@last_day, l.due_date) > 5
+      AND (l.paid_date IS NULL OR DATEDIFF(l.paid_date, l.due_date) > 5)
+    GROUP BY r.cust_id
+  ),
+
+  total_loans AS (
+    SELECT
+      r.cust_id,
+      COUNT(l.id) AS total_loan
+    FROM reassessment_accounts r
+    LEFT JOIN loans l ON l.cust_id = r.cust_id
+    WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+      AND l.product_id NOT IN (43, 75, 300)
+      AND EXTRACT(YEAR_MONTH FROM l.disbursal_date) <= @month
+      AND l.loan_purpose = 'float_advance'
+    GROUP BY r.cust_id
+  ),
+
+  latest_loan_per_month AS (
+    SELECT
+      l.cust_id,
+      EXTRACT(YEAR_MONTH FROM l.disbursal_date) AS loan_month,
+      MAX(l.loan_principal) AS max_loan_principal
+    FROM loans l
+    WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
+      AND l.product_id NOT IN (43, 75, 300)
+      AND l.loan_purpose = 'float_advance'
+      AND EXTRACT(YEAR_MONTH FROM l.disbursal_date) IN (@month, @prev_month)
+    GROUP BY l.cust_id, EXTRACT(YEAR_MONTH FROM l.disbursal_date)
+  ),
+
+  -- 6. Actual Limit (New CTE)
+  actual_limit_cte AS (
+    SELECT
+        x.cust_id,
+        COALESCE(
+            MAX(CASE WHEN x.src = 'borrower' THEN x.limit_value END),
+            MAX(CASE WHEN x.src = 'account'  THEN x.limit_value END)
+        ) AS actual_limit
+    FROM (
+        -- Borrower limits
+        SELECT
+            b.cust_id,
+            jt.limit_value,
+            'borrower' AS src
+        FROM borrowers b
+        JOIN JSON_TABLE(
+            b.conditions,
+            '$[*]' COLUMNS (
+                limit_value INT PATH '$.limit'
+            )
+        ) jt ON TRUE
+        WHERE b.country_code = @country_code
+        AND jt.limit_value > 0
+        AND b.cust_id IN (SELECT cust_id FROM reassessment_accounts)
+
+        UNION ALL
+
+        -- Account limits
+        SELECT
+            a.cust_id,
+            jt.limit_value,
+            'account' AS src
+        FROM accounts a
+        JOIN JSON_TABLE(
+            a.conditions,
+            '$[*]' COLUMNS (
+                limit_value INT PATH '$.limit'
+            )
+        ) jt ON TRUE
+        WHERE a.country_code = @country_code
+        AND jt.limit_value > 0
+        AND a.cust_id IN (SELECT cust_id FROM reassessment_accounts)
+        AND EXTRACT(YEAR_MONTH FROM a.created_at) <= @month
+        AND a.status = 'enabled'
+        AND a.is_removed = 0
+    ) x
+    GROUP BY x.cust_id
+  ),
+
+  ontime_repayment AS (
+    SELECT
+        cust_id,
+        ROUND(
+            100 * SUM(
+            CASE
+                WHEN t.max_txn_date <= DATE_ADD(l.due_date, INTERVAL 1 DAY) THEN 1
+                ELSE 0
+            END
+            ) / COUNT(l.loan_doc_id),
+            2
+        ) AS ontime_repayment_rate
+        FROM
+        loans l
+        JOIN (
+            SELECT
+            loan_doc_id,
+            MAX(txn_date) AS max_txn_date
+            FROM
+            loan_txns
+            WHERE
+            txn_type = 'payment'
+            GROUP BY
+            loan_doc_id
+        ) t ON l.loan_doc_id = t.loan_doc_id
+        WHERE
+        l.status = 'settled'
+        AND DATE(l.paid_date) <= @last_day
+        AND l.loan_purpose = 'float_advance'
+        AND l.product_id NOT IN (43, 75, 300)
+        AND l.status NOT IN (
+            'voided',
+            'hold',
+            'pending_disbursal',
+            'pending_mnl_dsbrsl'	
+        )
+        AND l.country_code = @country_code
+        GROUP BY
+        l.cust_id
+  )
+
+-- Final Output
+SELECT
+  cwr.cust_id AS `Customer ID`,
+  cwr.customer_name AS `Customer Name`,
+  cwr.reg_date AS `Registration Date`,
+  cwr.rm_name AS `RM Name`,
+  COALESCE(tl.total_loan, 0) AS `Total Loan Count`,
+  IFNULL(alcte.actual_limit, 0) AS `Actual Limit`,
+  IF(al.assessment_limit = 0, 'Ineligible', al.assessment_limit) AS `Reassessed Limit`,
+  lr.loan_principal AS `Last Loan Amount`,
+  lr.last_loan_status AS `Last Loan Status`,
+  CASE
+    WHEN lr.last_loan_status = 'overdue' THEN DATEDIFF(@last_day, lr.due_date)
+    ELSE 0
+  END AS `Overdue Days`,
+  COALESCE(lt.late_payment_count, 0) AS `Late Repayments`,
+  COALESCE(pl.par_5, 0) AS `PAR >5 Count`,
+  cwr.region `Region`,
+  CONCAT(COALESCE(orr.ontime_repayment_rate, '0.00'), ' %') `Ontime Repayment Rate`
+FROM customers_with_rm cwr
+LEFT JOIN primary_account_cte pa ON pa.cust_id = cwr.cust_id
+LEFT JOIN assessment_limit_cte al ON al.cust_id = cwr.cust_id
+LEFT JOIN actual_limit_cte alcte ON alcte.cust_id = cwr.cust_id
+LEFT JOIN loan_records lr ON lr.cust_id = cwr.cust_id
+LEFT JOIN loan_txn lt ON lt.loan_doc_id = lr.loan_doc_id
+LEFT JOIN par_loans pl ON pl.cust_id = cwr.cust_id
+LEFT JOIN total_loans tl ON tl.cust_id = cwr.cust_id
+LEFT JOIN ontime_repayment orr ON orr.cust_id = cwr.cust_id
+ORDER BY cwr.cust_id;

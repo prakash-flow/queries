@@ -1,5 +1,5 @@
 SET
-  @month = '202503';
+  @month = '202601';
 
 SET
   @country_code = 'UGA';
