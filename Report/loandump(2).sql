@@ -82,6 +82,7 @@ latest_calls AS (
             ) rn
         FROM os_query os
         join call_logs c on os.cust_id = c.cust_id and c.call_logger_id != os.flow_rel_mgr_id
+        where c.call_logger_id not in (select flow_rel_mgr_id from  os_query)
  
     ) x
     WHERE rn = 1
