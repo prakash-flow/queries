@@ -1,5 +1,5 @@
 WITH
-    '202602' AS v_month,
+    '202509' AS v_month,
     'UGA' AS v_country_code,
     toDate(concat(v_month,'01')) AS first_day,
     toLastDayOfMonth(first_day) AS last_day,
@@ -55,7 +55,8 @@ FROM
         l.flow_fee AS `Fee Amount`,
         toDate(l.due_date) AS `Due Date`,
 
-        sum(ifNull(lp.amount,0)) AS `Payment Amount`,
+        -- Correct Payment Amount: pre-aggregate to avoid duplication
+        coalesce(p.total_payment, 0) AS `Payment Amount`,
 
         if(l.status = 'settled', toDate(l.paid_date), NULL) AS `Payment Date`,
 
@@ -93,9 +94,14 @@ FROM
         ON lt.loan_doc_id = l.loan_doc_id
        AND lt.txn_type = 'disbursal'
 
-    LEFT JOIN loan_txns lp
-        ON lp.loan_doc_id = l.loan_doc_id
-       AND lp.txn_type = 'payment'
+    -- Pre-aggregate payments to avoid double counting
+    LEFT JOIN (
+        SELECT loan_doc_id, sum(ifNull(principal, 0) + ifNull(fee, 0)) AS total_payment
+        FROM loan_txns
+        WHERE txn_type = 'payment'
+        GROUP BY loan_doc_id
+    ) p
+        ON p.loan_doc_id = l.loan_doc_id
 
     LEFT JOIN customer_repayment_limits crl
         ON crl.cust_id = l.cust_id
@@ -113,7 +119,8 @@ FROM
         l.flow_fee,
         l.due_date,
         l.status,
-        l.paid_date
+        l.paid_date,
+        p.total_payment
 ) t
 
 WHERE t.`Date of FA` BETWEEN first_day AND last_day
