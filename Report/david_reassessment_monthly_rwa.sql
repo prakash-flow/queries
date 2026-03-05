@@ -2,13 +2,6 @@ SET @month = '202503';
 SET @last_day = LAST_DAY(DATE(CONCAT(@month, '01')));
 SET @country_code = 'RWA';
 
-SET @prev_month = (
-  SELECT DATE_FORMAT(
-    DATE_SUB(STR_TO_DATE(CONCAT(@month, '01'), '%Y%m%d'), INTERVAL 1 MONTH),
-    '%Y%m'
-  )
-);
-
 WITH
 -- Active Customers
 reassessment_accounts AS (
@@ -78,11 +71,11 @@ customers_with_name AS (
 commission_data AS (
     SELECT
         identifier,
-        MAX(CASE WHEN month = @month THEN distributor_code END) distributor_code,
+        MAX(CASE WHEN month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month,'01')),INTERVAL 1 MONTH),'%Y%m') THEN distributor_code END) distributor_code,
         CAST(IFNULL((
+            MAX(IF(month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month,'01')),INTERVAL 3 MONTH),'%Y%m'), commission,0)) +
             MAX(IF(month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month,'01')),INTERVAL 2 MONTH),'%Y%m'), commission,0)) +
-            MAX(IF(month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month,'01')),INTERVAL 1 MONTH),'%Y%m'), commission,0)) +
-            MAX(IF(month = @month, commission,0))
+            MAX(IF(month = DATE_FORMAT(DATE_SUB(DATE(CONCAT(@month,'01')),INTERVAL 1 MONTH),'%Y%m'), commission,0))
         )/3,0) AS UNSIGNED) avg_comms
     FROM cust_commissions
     WHERE identifier IN (SELECT acc_number FROM reassessment_accounts)

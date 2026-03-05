@@ -33,7 +33,6 @@ WITH
     GROUP BY
       loan_doc_id
   )
-
 SELECT
   l.cust_id `Customer ID`,
   l.loan_doc_id `Loan ID`,
@@ -51,19 +50,27 @@ SELECT
   (l.loan_principal - IFNULL(p.total_amount, 0)) AS `Outstanding`,
   b.category `Category`,
   CASE
-      WHEN field_1 IS NULL
-        OR field_2 IS NULL
-        OR field_3 IS NULL
-        OR field_4 IS NULL
-      THEN CONCAT(
-          CONCAT_WS(', ',
-              CASE WHEN field_1 IS NULL THEN 'Province' END,
-              CASE WHEN field_2 IS NULL THEN 'District' END,
-              CASE WHEN field_3 IS NULL THEN 'Sector' END,
-              CASE WHEN field_4 IS NULL THEN 'Cell' END
-          ),
-          ' is null'
-      )
+    WHEN field_1 IS NULL
+    OR field_2 IS NULL
+    OR field_3 IS NULL
+    OR field_4 IS NULL THEN CONCAT(
+      CONCAT_WS(
+        ', ',
+        CASE
+          WHEN field_1 IS NULL THEN 'Province'
+        END,
+        CASE
+          WHEN field_2 IS NULL THEN 'District'
+        END,
+        CASE
+          WHEN field_3 IS NULL THEN 'Sector'
+        END,
+        CASE
+          WHEN field_4 IS NULL THEN 'Cell'
+        END
+      ),
+      ' is null'
+    )
   END AS `Remarks`
 FROM
   loans l
@@ -81,4 +88,8 @@ WHERE
   AND l.product_id NOT IN('43', '75', '300')
   AND l.country_code = @country_code
   AND (l.loan_principal - IFNULL(p.total_amount, 0)) > 0
-  AND DATEDIFF(@last_day, l.due_date) > 30;
+  AND DATEDIFF(@last_day, l.due_date) > 30
+  AND (
+    DATE(paid_date) > @last_day
+    OR paid_date IS NULL
+  );
