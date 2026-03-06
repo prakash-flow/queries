@@ -1,5 +1,5 @@
 SET @month = 202601;
-SET @country_code = 'RWA';
+SET @country_code = 'UGA';
 SET @last_day = CONCAT(LAST_DAY(DATE(CONCAT(@month,'01'))), ' 23:59:59');
 
 SET @closure_date = (
@@ -92,7 +92,7 @@ customer_os AS (
 )
 
 SELECT
-    'Last assessment < 3 months' AS assessment_condition,
+    'Last assessment > 3 months ago' AS assessment_condition,
     COUNT(*) AS customer_count,
     SUM(total_os_principal) AS total_os
 FROM customer_os
@@ -101,29 +101,51 @@ WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 3 MONTH)
 UNION ALL
 
 SELECT
-    'Last assessment < 6 months',
-    COUNT(*),
-    SUM(total_os_principal)
+    'Last assessment > 6 months ago' AS assessment_condition,
+    COUNT(*) AS customer_count,
+    SUM(total_os_principal) AS total_os
 FROM customer_os
 WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 6 MONTH)
 
 UNION ALL
 
+-- Breakdown 1: 3 to 6 months
 SELECT
-    'Last assessment 1-2 years',
+    'Last assessment 3 to 6 months ago',
     COUNT(*),
     SUM(total_os_principal)
 FROM customer_os
-WHERE last_assessment BETWEEN DATE_SUB(@last_day, INTERVAL 2 YEAR) 
-                          AND DATE_SUB(@last_day, INTERVAL 1 YEAR)
+WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 3 MONTH) 
+  AND last_assessment >= DATE_SUB(@last_day, INTERVAL 6 MONTH)
 
 UNION ALL
 
+-- Breakdown 2: 6 to 12 months (Fixed the 1-month gap you had)
 SELECT
-    'Last assessment < 2 years',
+    'Last assessment 6 to 12 months ago',
+    COUNT(*),
+    SUM(total_os_principal)
+FROM customer_os
+WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 6 MONTH) 
+  AND last_assessment >= DATE_SUB(@last_day, INTERVAL 12 MONTH)
+
+UNION ALL
+
+-- Breakdown 3: 1 to 2 years
+SELECT
+    'Last assessment 1 to 2 years ago',
+    COUNT(*),
+    SUM(total_os_principal)
+FROM customer_os
+WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 1 YEAR) 
+  AND last_assessment >= DATE_SUB(@last_day, INTERVAL 2 YEAR)
+
+UNION ALL
+
+-- Breakdown 4: More than 2 years (Fixed the "less than" logic)
+SELECT
+    'Last assessment 2 years ago',
     COUNT(*),
     SUM(total_os_principal)
 FROM customer_os
 WHERE last_assessment < DATE_SUB(@last_day, INTERVAL 2 YEAR);
-
--- https://docs.google.com/spreadsheets/d/1XGwOj08S6nx-JBP-8AmFV8B5BAbIYQOFzh3wa_PGRCU/edit?usp=sharing
