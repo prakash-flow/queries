@@ -58,22 +58,12 @@ WITH
       CASE
         WHEN a.acc_number IS NOT NULL THEN "account_exists"
         WHEN l.account_num IS NOT NULL THEN "lead_exists"
+        WHEN p.mobile_num IS NOT NULL THEN "person_exists"
         ELSE "new_lead"
       END AS account_status,
       -- Can Create Flag
       CASE
-        WHEN (
-          (
-            (
-              l.account_num IS NOT NULL
-              OR a.acc_number IS NULL
-            )
-            OR (
-              a.acc_number IS NULL
-              OR a.is_removed = 0
-            )
-          )
-          AND CAST(
+        WHEN  (CAST(
             (
               MAX(
                 CASE
@@ -431,6 +421,8 @@ WITH
       AND l.status <= "40_pending_kyc"
       LEFT JOIN accounts a ON a.acc_number = cc.acc_number
       AND a.is_removed = 0
+      LEFT JOIN persons p
+        ON p.mobile_num = cc.acc_number
     WHERE
       cc.month IN ("202510", "202511", "202512")
     GROUP BY

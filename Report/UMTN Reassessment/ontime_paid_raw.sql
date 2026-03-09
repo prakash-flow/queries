@@ -113,7 +113,7 @@ SELECT
             0
         ),
         2
-    ) AS ontime_rate_last_6_months
+    ) AS ontime_rate_last_12_months
 
 FROM loans l
 JOIN loan_payments t

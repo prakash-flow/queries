@@ -3,7 +3,9 @@ with adjLoans as (
   	cust_id `Customer Id`,
   	loan_doc_id `Loan Doc Id`,
   	format(loan_principal, 0) `Loan Principal`,
-  	format(flow_fee, 0) `Loan Fee`,
+  	flow_fee `Loan Fee`,
+    acc_prvdr_code `Account Provider Code`,
+    lender_code `Lender Code`,
   	format(paid_amount, 0) `Settled Amount`,
   	disbursal_date `Disbursal date`,
   	due_date `Due date`,
@@ -35,5 +37,5 @@ from
   left join borrowers b on b.cust_id = a.`Customer Id`
   left join persons p on b.owner_person_id = p.id
 where
-  `Due date` between '2025-05-01 23:59:59' and '2025-05-31 23:59:59'
+  `Due date` between '2026-02-01 23:59:59' and '2026-02-28 23:59:59'
 having paid_on_time = 1;
