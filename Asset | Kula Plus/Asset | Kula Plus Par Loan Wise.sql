@@ -1,4 +1,4 @@
-SET @country_code = 'UGA';
+SET @country_code = 'RWA';
 SET @month = '202512';
 
 SET @last_day = (
@@ -143,6 +143,7 @@ SELECT
     loan_purpose AS `Loan Purpose`,
 
     SUM(loan_os) AS `Total Outstanding`,
+    SUM(CASE WHEN loan_os > 0 THEN 1 END) AS `Total Outstanding Count`,
 
     SUM(CASE WHEN par_days > 1   THEN loan_os ELSE 0 END) AS `Par 1`,
     SUM(CASE WHEN par_days > 5   THEN loan_os ELSE 0 END) AS `Par 5`,
@@ -154,7 +155,11 @@ SELECT
     SUM(CASE WHEN par_days > 120 THEN loan_os ELSE 0 END) AS `Par 120`,
     SUM(CASE WHEN par_days > 180 THEN loan_os ELSE 0 END) AS `Par 180`,
     SUM(CASE WHEN par_days > 270 THEN loan_os ELSE 0 END) AS `Par 270`,
-    SUM(CASE WHEN par_days > 360 THEN loan_os ELSE 0 END) AS `Par 360`
+    SUM(CASE WHEN par_days > 360 THEN loan_os ELSE 0 END) AS `Par 360`,
+    SUM(CASE WHEN par_days BETWEEN 1 AND 30 THEN loan_os ELSE 0 END) AS `Par 1 - 30`,
+    SUM(CASE WHEN par_days BETWEEN 31 AND 90 THEN loan_os ELSE 0 END) AS `Par 31 - 90`,
+    SUM(CASE WHEN par_days BETWEEN 91 AND 180 THEN loan_os ELSE 0 END) AS `Par 91 - 180`,
+    SUM(CASE WHEN par_days BETWEEN 181 AND 360 THEN loan_os ELSE 0 END) AS `Par 181 - 360`,
 
 FROM loan_level_par
 GROUP BY loan_purpose
