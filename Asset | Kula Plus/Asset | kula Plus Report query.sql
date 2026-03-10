@@ -1,5 +1,5 @@
-SET @country_code = 'RWA';
-SET @month = '202512';
+SET @country_code = 'UGA';
+SET @month = '202602';
 
 SET @last_day = (
     SELECT LAST_DAY(DATE(CONCAT(@month, '01')))
@@ -133,9 +133,10 @@ loan_level_os AS (
         MAX(last_paid_date) as last_paid_date,
         /* Total outstanding per loan */
         SUM(os_amount) AS loan_os,
+        
 
         MIN(CASE
-            WHEN os_amount > 0 AND DATE(due_date) <= @last_day
+            WHEN (os_amount + fee_os_amount) > 0  AND DATE(due_date) <= @last_day
             THEN due_date
         END) AS min_overdue_due_date
     FROM installment_os
@@ -157,10 +158,10 @@ loan_level_par AS (
         last_paid_date,
         installment_amount,
         CASE
-            WHEN loan_os = 0
+            WHEN (loan_os + fee_os) = 0
               OR min_overdue_due_date IS NULL
             THEN 0
-            ELSE DATEDIFF(@last_day, min_overdue_due_date)
+            ELSE DATEDIFF(@last_day, date(min_overdue_due_date))
         END AS par_days
     FROM loan_level_os
 ),
@@ -230,7 +231,7 @@ last_payment as (
         END
       as `Status`,
       par_days as `Arrear days`,
-      if(par_days = 0,last_paid_date,null) as `Last paid date`,
+      last_paid_date as `Last paid date`,
       l.duration AS `Term (in Months)`,
       l.schedule_grace_period as `schedule_grace_period (in months)`,
       l.schedule_part_period as `schedule_part_period (in months)`,
@@ -245,7 +246,7 @@ last_payment as (
     left join next_due_date n on n.loan_doc_id = o.loan_doc_id
     left join last_max_due_date lm on lm.loan_doc_id = o.loan_doc_id
     left join last_payment lp on lp.loan_doc_id = o.loan_doc_id
-   -- where l.loan_doc_id = 'UFLW-40751B-1569127'
+  -- WHERE o.loan_doc_id = 'UFLW-40776B-1569432'
   order by disbursal_date
 ;
 
