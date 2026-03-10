@@ -63,12 +63,11 @@ FROM
         if(l.status = 'settled' AND dateDiff('day', l.due_date, l.paid_date) <= 1, 1, 0)
             AS `Paid on-time or not`,
 
-        if(
-            l.status = 'overdue'
-            OR (l.status = 'settled' AND dateDiff('day', l.due_date, l.paid_date) > 1),
-            dateDiff('day', l.due_date, today()),
-            NULL
-        ) AS `Overdue Days (if paid late)`,
+        CASE 
+            WHEN l.status = 'overdue' THEN dateDiff('day', l.due_date, today())
+            WHEN (l.status = 'settled' AND dateDiff('day', l.due_date, l.paid_date) > 1) THEN dateDiff('day', l.due_date, l.paid_date)
+            ELSE NULL
+        END `Overdue Days (if paid late)`,
 
         count() OVER (
             PARTITION BY l.cust_id
