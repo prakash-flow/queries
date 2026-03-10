@@ -1,5 +1,5 @@
-SET @month = '202512';
-    SET @country_code = 'UGA';
+SET @month = '202312';
+    SET @country_code = 'RWA';
 
     SET @last_day = LAST_DAY(DATE(CONCAT(@month, "01")));
     SET @realization_date = (
@@ -84,7 +84,8 @@ SET @month = '202512';
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 1 AND 30,os_principal, 0)) AS par_1_30,
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 31 AND 90,os_principal, 0)) AS par_31_90,
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 91 AND 180,os_principal, 0)) AS par_91_180,
-            SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 181 AND 365,os_principal, 0)) AS par_181_365
+            SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 181 AND 365,os_principal, 0)) AS par_181_365,
+            SUM(IF(DATEDIFF(@last_day, due_date) > 365,os_principal, 0)) AS par_365
             
         FROM loan_os
         GROUP BY loan_purpose
@@ -111,7 +112,8 @@ SET @month = '202512';
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 1 AND 30,os_fee, 0)) AS par_1_30,
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 31 AND 90,os_fee, 0)) AS par_31_90,
             SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 91 AND 180,os_fee, 0)) AS par_91_180,
-            SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 181 AND 365,os_fee, 0)) AS par_181_360
+            SUM(IF(DATEDIFF(@last_day, due_date) BETWEEN 181 AND 365,os_fee, 0)) AS par_181_360,
+            SUM(IF(DATEDIFF(@last_day, due_date) > 365 ,os_fee, 0)) AS par_365
         FROM loan_os
         GROUP BY loan_purpose
     ) t

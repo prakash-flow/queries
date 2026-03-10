@@ -1,36 +1,31 @@
-set @month = "202506";
-set @country_code = 'UGA';
+SET @month = "202506";
+SET @country_code = 'UGA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
-  
-with borrower as (
-  select
-    sum(if(a.field_2 NOT IN ('kampala'), 0, 1)) as rural_count,
-    sum(if(p.gender IN ('female', 'Female'), 1, 0)) as female_count,
-    count(b.id) as total_customer
-  from
-    borrowers b
-    left join persons p on p.id = b.owner_person_id
-    left join address_info a on a.id = b.owner_address_id
-  where
-    reg_date <= @last_day
-    and b.country_code = @country_code
-),
-metric as (
-  select 
-    total_customer,
-    rural_count,
-    female_count,
-    (female_count / total_customer) * 100 as female_percent,
-    (rural_count / total_customer) * 100 as rural_percent
-  from borrower
+SET @last_day = LAST_DAY(DATE(CONCAT(@month, "01")));
+
+WITH borrower AS (
+    SELECT
+        COUNT(b.id) AS total_customer,
+        SUM(p.gender IN ('female', 'Female')) AS female_count,
+        SUM(
+            CASE 
+                WHEN b.country_code = 'UGA' AND (a.field_2 IS NULL OR a.field_2 != 'kampala') THEN 1
+                WHEN b.country_code = 'RWA' AND (a.field_2 IS NULL OR a.field_2 != 'Kigali') THEN 1
+                ELSE 0
+            END
+        ) AS rural_count
+    FROM borrowers b
+    LEFT JOIN persons p ON p.id = b.owner_person_id
+    LEFT JOIN address_info a ON a.id = b.owner_address_id
+    WHERE b.reg_date <= @last_day
+      AND b.country_code = @country_code
 )
-select 'Total Borrowers' as `Borrower Demographics`, ROUND(total_customer) as `Value` from metric
-union all
-select 'Rural Borrower %', rural_percent from metric
-union all
-select 'Female Borrower %', female_percent from metric
-union all
-select 'Rural Count', rural_count from metric
-union all
-select 'Female Count', female_count from metric;
+SELECT 'Total Borrowers' AS `Borrower Demographics`, total_customer AS `Value` FROM borrower
+UNION ALL
+SELECT 'Rural Borrower %', ROUND((rural_count / NULLIF(total_customer, 0)) * 100, 2) FROM borrower
+UNION ALL
+SELECT 'Female Borrower %', ROUND((female_count / NULLIF(total_customer, 0)) * 100, 2) FROM borrower
+UNION ALL
+SELECT 'Rural Count', rural_count FROM borrower
+UNION ALL
+SELECT 'Female Count', female_count FROM borrower;

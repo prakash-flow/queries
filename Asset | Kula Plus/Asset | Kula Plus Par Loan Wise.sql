@@ -159,7 +159,7 @@ SELECT
     SUM(CASE WHEN par_days BETWEEN 1 AND 30 THEN loan_os ELSE 0 END) AS `Par 1 - 30`,
     SUM(CASE WHEN par_days BETWEEN 31 AND 90 THEN loan_os ELSE 0 END) AS `Par 31 - 90`,
     SUM(CASE WHEN par_days BETWEEN 91 AND 180 THEN loan_os ELSE 0 END) AS `Par 91 - 180`,
-    SUM(CASE WHEN par_days BETWEEN 181 AND 360 THEN loan_os ELSE 0 END) AS `Par 181 - 360`,
+    SUM(CASE WHEN par_days BETWEEN 181 AND 360 THEN loan_os ELSE 0 END) AS `Par 181 - 360`
 
 FROM loan_level_par
 GROUP BY loan_purpose
