@@ -24,6 +24,7 @@ WITH loan AS (
         l.cust_name,
         l.biz_name,
         l.flow_fee,
+        l.loan_purpose,
         l.loan_principal,
         l.duration,
         l.disbursal_date,
@@ -122,6 +123,9 @@ loan_level AS (
 
         SUM(principal_os) AS principal_os_as_on_prev_month,
 
+        SUM(IF(due_date > @report_end , principal_paid,0))
+            AS future_allocated_pricipal_os,
+
         SUM(IF(due_date <= @report_end, fee_os, 0)) AS interest_os_as_on_prev_month,
 
         SUM(IF(due_date <= @report_end, installment_os, 0))
@@ -137,6 +141,10 @@ loan_level AS (
                 0
             )
         ) AS next_month_collected,
+  
+        MIN(
+          IF(due_date BETWEEN @next_month_start AND @next_month_end, due_date, NULL)
+        ) AS next_month_first_due_date,
 
         SUM(
             IF(
@@ -163,13 +171,13 @@ paid_till_report AS (
 
     WHERE a.realization_date <= @closure_date
       AND a.stmt_txn_date <= @report_end
+      AND a.country_code = @country_code
+      AND p.country_code = @country_code
 
     GROUP BY p.loan_doc_id
 )
 
 SELECT
-
-    ROW_NUMBER() OVER (ORDER BY l.disbursal_date) AS s_no,
 
     l.cust_name AS client_name,
     l.biz_name  AS business_name,
@@ -179,6 +187,11 @@ SELECT
     l.cust_id     AS customer_id,
     l.loan_doc_id AS loan_id,
 
+    case 
+      when l.loan_purpose = 'growth_financing' then 'Kula Plus'
+      when l.loan_purpose = 'asset_financing' then 'Kula Asset'
+    end as loan_purpose,
+  
     l.loan_sequence,
 
     DATE(l.disbursal_date) AS disbursal_date,
@@ -189,7 +202,7 @@ SELECT
 
     COALESCE(ptr.total_paid,0) AS total_paid_till_report,
 
-    ll.principal_os_as_on_prev_month,
+    (ll.principal_os_as_on_prev_month) as principal_os,
     ll.interest_os_as_on_prev_month,
 
     CASE
@@ -197,7 +210,7 @@ SELECT
       WHEN ll.total_due = 0 THEN 'Closed'
       ELSE 'Ongoing'
   END AS status,
-
+    date(ll.next_month_first_due_date),
     ll.next_month_due,
     ll.next_month_collected,
     ll.total_overdue_os_as_on_prev_month,
@@ -211,4 +224,4 @@ LEFT JOIN loan_level ll
 LEFT JOIN paid_till_report ptr
        ON ptr.loan_doc_id = l.loan_doc_id
 
-ORDER BY s_no;
+ORDER BY customer_id, loan_sequence;
