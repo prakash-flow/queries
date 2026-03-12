@@ -26,7 +26,8 @@ WITH loan AS (
         l.flow_fee,
         l.loan_purpose,
         l.loan_principal,
-        l.duration,
+        l.number_of_installments,
+        l.schedule_grace_period,
         l.disbursal_date,
 
         ROW_NUMBER() OVER (
@@ -198,7 +199,7 @@ SELECT
 
     l.loan_principal AS amount_disbursed,
     l.flow_fee,
-    l.duration AS tenor_months,
+    (l.number_of_installments + l.schedule_grace_period) AS tenor_months,
 
     COALESCE(ptr.total_paid,0) AS total_paid_till_report,
 
