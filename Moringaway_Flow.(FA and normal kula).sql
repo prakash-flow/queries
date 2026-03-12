@@ -69,7 +69,7 @@ SELECT
 
     -- Outstanding values
     SUM(GREATEST(loan_principal - principal_paid, 0)) AS principal_os,
-    SUM(IF(DATEDIFF(@last_day, due_date) < 30,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30,
+    SUM(IF(DATEDIFF(@last_day, due_date) between 1 and 29,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30,
     SUM(IF(DATEDIFF(@last_day, due_date) between 30 and 89,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30_and_89,
     SUM(IF(DATEDIFF(@last_day, due_date) between 90 and 120,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_90_and_120,
     SUM(IF(DATEDIFF(@last_day, due_date) between 121 and 359,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_121_and_359,

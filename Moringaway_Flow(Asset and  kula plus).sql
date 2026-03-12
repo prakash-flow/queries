@@ -144,7 +144,7 @@ SELECT
     @month as Month,
     loan_purpose as `Loan Purpose`,
     SUM(loan_os) AS principal_os,
-    SUM(IF(par_days < 30,  loan_os, 0)) AS par_30,
+    SUM(IF(par_days between 1 and 29,  loan_os, 0)) AS par_30,
     SUM(IF(par_days between 30 and 89,  loan_os, 0)) AS par_30_and_89,
     SUM(IF(par_days between 90 and 120,  loan_os, 0)) AS par_90_and_120,
     SUM(IF(par_days between 121 and 359,  loan_os, 0)) AS par_121_and_359,
