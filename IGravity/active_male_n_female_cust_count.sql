@@ -4,7 +4,7 @@ SELECT
   COUNT(DISTINCT IF(p.gender = 'female', b.cust_id, NULL)) AS female,
   COUNT(
     DISTINCT IF(
-      TIMESTAMPDIFF(YEAR, p.dob, '2024-12-31') <= 30,
+      TIMESTAMPDIFF(YEAR, p.dob, '2023-12-31') <= 30,
       b.cust_id,
       NULL
     )
@@ -13,13 +13,11 @@ SELECT
     DISTINCT CASE
       WHEN b.country_code = 'UGA'
       AND (
-        a.field_2 IS NULL
-        OR a.field_2 = 'kampala'
+        a.field_2 != 'kampala'
       ) THEN b.cust_id
       WHEN b.country_code = 'RWA'
       AND (
-        a.field_1 IS NULL
-        OR a.field_1 = 'Kigali'
+        a.field_1 != 'Kigali'
       ) THEN b.cust_id
     END
   ) AS rural_count
@@ -30,9 +28,9 @@ FROM
   LEFT JOIN persons p ON p.id = b.owner_person_id
   LEFT JOIN address_info a ON a.id = b.owner_address_id
 WHERE
-  DATEDIFF('2024-12-31', txn_date) <= 30
-  AND DATE(txn_date) <= '2024-12-31'
-  AND reg_date <= '2024-12-31'
+  DATEDIFF('2023-12-31', txn_date) <= 30
+  AND DATE(txn_date) <= '2023-12-31'
+  AND reg_date <= '2023-12-31'
   AND b.country_code = 'RWA'
   AND txn_type = 'disbursal'
   AND product_id NOT IN(43, 75, 300)
@@ -54,7 +52,7 @@ WHERE
         FROM
           record_audits
         WHERE
-          DATE(created_at) <= '2024-12-31'
+          DATE(created_at) <= '2023-12-31'
           AND country_code = 'RWA'
         GROUP BY
           record_code

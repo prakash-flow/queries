@@ -41,7 +41,7 @@ SET @month = '202312';
         SELECT 
             loan_doc_id,
             SUM(CASE WHEN txn_type = 'payment' THEN principal ELSE 0 END) AS total_paid_principal,
-            SUM(CASE WHEN txn_type = 'payment' THEN fee ELSE 0 END) AS total_paid_fee
+            SUM(CASE WHEN txn_type in ('payment', 'fee_waiver') THEN fee ELSE 0 END) AS total_paid_fee
         FROM loan_txns
         WHERE DATE(txn_date) <= @last_day
         AND realization_date <= @realization_date
