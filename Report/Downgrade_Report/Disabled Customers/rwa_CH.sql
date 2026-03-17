@@ -54,11 +54,34 @@ LoanWithLimits AS (
       AND l.product_id NOT IN (43, 75, 300)
       AND l.status NOT IN ('voided','hold','pending_disbursal','pending_mnl_dsbrsl')
       AND l.loan_purpose = 'float_advance'
+),
+VisitDetails AS (
+    SELECT
+        b.cust_id AS cust_id,
+        max(toDate(fv.visit_end_time)) AS last_visit_date,
+        p.full_name AS customer_name,
+        p.mobile_num AS customer_mobile_num
+    FROM borrowers b
+    LEFT JOIN field_visits fv
+        ON fv.cust_id = b.cust_id
+        AND fv.country_code = 'RWA'
+        AND fv.sch_status = 'checked_out'
+        AND toDate(fv.visit_end_time) <= today()
+    LEFT JOIN persons p
+        ON b.owner_person_id = p.id
+    WHERE b.country_code = 'RWA'
+    GROUP BY
+        b.cust_id,
+        p.full_name,
+        p.mobile_num
 )
 SELECT 
   cd.c_code AS `Country Code`,
   toYYYYMM(cd.e_time) AS `Disabled Month`,
   cd.r_code AS `Customer ID`,
+  vd.customer_name AS `Customer Name`,
+  vd.customer_mobile_num AS `Customer Mobile Number`,
+  vd.last_visit_date AS `Last Visit Date`,
   l.loan_doc_id AS `Last Loan ID`,  
   l.loan_principal AS `Last FA amount`,
   l.flow_fee AS `Last FA fee`,
@@ -95,6 +118,8 @@ SELECT
 FROM CalculatedDates AS cd
 ASOF LEFT JOIN LoanWithLimits AS l 
   ON cd.r_code = toString(l.cust_id) AND cd.e_time >= l.loan_time
+LEFT JOIN VisitDetails vd
+    ON vd.cust_id = cd.r_code
 WHERE cd.s_val = 'disabled'
   AND cd.e_time >= now() - INTERVAL 7 MONTH
 ORDER BY `Disabled On` ASC;
