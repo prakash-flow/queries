@@ -1,8 +1,8 @@
 /* ===============================
    Parameters
 ================================ */
-SET @country_code = 'RWA';
-SET @month = '202508';
+SET @country_code = 'UGA';
+SET @month = '202512';
 
 SET @last_day = (
     SELECT LAST_DAY(DATE(CONCAT(@month, '01')))
@@ -61,7 +61,7 @@ loan_installment AS (
         installment_number,
         principal_due AS installment_principal,
         fee_due AS installment_fee,
-        due_date
+        date(due_date) as due_date
     FROM loan_installments
     WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan)
 ),
