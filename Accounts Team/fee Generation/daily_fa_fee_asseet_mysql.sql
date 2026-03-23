@@ -41,7 +41,7 @@ WITH
         GROUP BY l.loan_doc_id, l.acc_prvdr_code, l.cust_name, l.flow_rel_mgr_name, l.product_name, l.disbursal_date, l.due_date, l.loan_principal, l.flow_fee
     ),
 
-    -- 3. Payment Aggregation
+    -- 3. Payment Aggregation (Per Installment)
     payment_agg AS (
         SELECT
             p.loan_doc_id AS pay_loan_id,
@@ -62,7 +62,7 @@ WITH
         GROUP BY pay_loan_id, pay_inst_num
     ),
 
-    -- 4. Total Fees Paid per Loan
+    -- 4. Total Fees Paid per Loan (Lifetime up to closure)
     total_loan_payments AS (
         SELECT 
             p.loan_doc_id AS pay_loan_id,
@@ -79,7 +79,7 @@ WITH
         GROUP BY pay_loan_id
     ),
 
-    -- 5. Intermediate Totals
+    -- 5. Intermediate Totals (Calculates OS balances)
     totals AS (
         SELECT 
             li.loan_doc_id AS join_id,
@@ -115,13 +115,25 @@ SELECT
     -- Aging and Timing
     CAST(IF(t.raw_min_date IS NULL, 0, DATEDIFF(@last_day_var, t.raw_min_date)) AS SIGNED) AS `Par Days`,
     CAST(lb.total_days_duration AS SIGNED) AS `Duration`,
-    CAST(COALESCE(DATEDIFF(LEAST(lb.due_date, @last_day_var), lb.disbursal_date), 0) AS SIGNED) AS `days_inside_report`,
-    CAST(GREATEST(0, DATEDIFF(lb.due_date, @last_day_var)) AS SIGNED) AS `days_outside_report`,
+    
+    -- Days Inside/Outside calculations
+    CAST(GREATEST(0, LEAST(lb.total_days_duration, DATEDIFF(@last_day_var, lb.disbursal_date))) AS SIGNED) AS `days_inside_report`,
+    CAST(GREATEST(0, lb.total_days_duration - GREATEST(0, LEAST(lb.total_days_duration, DATEDIFF(@last_day_var, lb.disbursal_date)))) AS SIGNED) AS `days_outside_report`,
     
     -- Fee Calculations
-    CAST(CEIL(COALESCE(lb.flow_fee, 0) / lb.total_days_duration) AS SIGNED) AS `Fee Per Day`,
-    CAST(CEIL(COALESCE(t.total_os_fee, 0)) AS SIGNED) AS `Fee OS as of report date`,
-    CAST(GREATEST(0, CEIL(((COALESCE(lb.flow_fee, 0) / lb.total_days_duration) * COALESCE(DATEDIFF(LEAST(lb.due_date, @last_day_var), lb.disbursal_date), 0)) - COALESCE(lp.total_fee_paid, 0))) AS SIGNED) AS `fee_os_at_report_date`,
+    CAST(COALESCE(lb.flow_fee, 0) / lb.total_days_duration AS DECIMAL(18,4)) AS `Fee Per Day`,
+    
+    -- Fee OS at report date: The expected fee accrued minus what was actually paid
+    CAST(CEIL(GREATEST(0, LEAST(
+        COALESCE(t.total_os_fee, 0), 
+        ((COALESCE(lb.flow_fee, 0) / lb.total_days_duration) * GREATEST(0, LEAST(lb.total_days_duration, DATEDIFF(@last_day_var, lb.disbursal_date)))) - COALESCE(lp.total_fee_paid, 0)
+    ))) AS SIGNED) AS `fee_os_at_report_date`,
+
+    -- Fee OS after report date: Calculated as the remainder to ensure sum = Fee OS
+    CAST(CEIL(COALESCE(t.total_os_fee, 0) - GREATEST(0, LEAST(
+        COALESCE(t.total_os_fee, 0), 
+        ((COALESCE(lb.flow_fee, 0) / lb.total_days_duration) * GREATEST(0, LEAST(lb.total_days_duration, DATEDIFF(@last_day_var, lb.disbursal_date)))) - COALESCE(lp.total_fee_paid, 0)
+    ))) AS SIGNED) AS `fee_os_after_report_date`,
 
     -- PAR Buckets (Principal & Fee)
     CAST(IF(IF(t.raw_min_date IS NULL, 0, DATEDIFF(@last_day_var, t.raw_min_date)) BETWEEN 0 AND 30, CEIL(COALESCE(t.total_os_principal, 0)), 0) AS SIGNED) AS `Par 0_30 (Principal)`,
@@ -144,12 +156,3 @@ JOIN totals t ON lb.loan_doc_id = t.join_id
 LEFT JOIN total_loan_payments lp ON lb.loan_doc_id = lp.pay_loan_id
 WHERE (t.total_os_principal > 0 OR t.total_os_fee > 0)
 ORDER BY lb.disbursal_date;
-
-
-
-
-
-
-
-
-
