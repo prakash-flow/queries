@@ -67,6 +67,7 @@ payment_allocation AS (
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
       AND DATE(a.stmt_txn_date)<=@last_day
+      AND is_reversed = 0
       AND a.realization_date<=@realization_date
     GROUP BY p.loan_doc_id,p.installment_number
 ),
@@ -108,6 +109,7 @@ last_payment AS (
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
       AND DATE(a.stmt_txn_date)<=@last_day
+      AND is_reversed = 0
     GROUP BY p.loan_doc_id
 ),
 

@@ -87,6 +87,7 @@ payment AS (
     WHERE a.realization_date <= @closure_date
       AND a.stmt_txn_date <= @report_end
       AND p.country_code = @country_code
+      AND is_reversed = 0
       AND a.country_code = @country_code
 
     GROUP BY p.loan_doc_id, p.installment_number
@@ -174,6 +175,7 @@ paid_till_report AS (
       AND a.stmt_txn_date <= @report_end
       AND a.country_code = @country_code
       AND p.country_code = @country_code
+      AND is_reversed = 0
 
     GROUP BY p.loan_doc_id
 )

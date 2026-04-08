@@ -61,6 +61,7 @@ asset_payment AS (
     JOIN reconed_txns rt
       ON rt.stmt_txn_id = pai.stmt_txn_id
     WHERE pai.country_code = @country_code
+    AND is_reversed = 0
     GROUP BY
         rt.acc_number,
         pai.loan_doc_id,

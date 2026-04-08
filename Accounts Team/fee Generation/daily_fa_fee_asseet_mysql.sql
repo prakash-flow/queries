@@ -52,6 +52,7 @@ WITH
         JOIN account_stmts a ON a.id = p.account_stmt_id
         JOIN loan_installments li ON li.id = p.installment_id
         WHERE DATE_FORMAT(a.stmt_txn_date, '%Y%m') <= @month_str
+        AND is_reversed = 0
           AND a.realization_date <= (
               SELECT closure_date FROM flow_api.closure_date_records 
               WHERE status = 'enabled' AND month = @month_str AND country_code = @country_code_var 
@@ -70,6 +71,7 @@ WITH
         FROM payment_allocation_items p
         JOIN account_stmts a ON a.id = p.account_stmt_id
         WHERE DATE_FORMAT(a.stmt_txn_date, '%Y%m') <= @month_str
+        AND is_reversed = 0
           AND a.realization_date <= (
               SELECT closure_date FROM flow_api.closure_date_records 
               WHERE status = 'enabled' AND month = @month_str AND country_code = @country_code_var 

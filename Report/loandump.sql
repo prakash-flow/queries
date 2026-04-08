@@ -117,6 +117,7 @@ SELECT
     lpa.amount AS `Last Paid Amount`,
     os.principal_os AS `Principal OS`,
     os.fee_os AS `Fee OS`,
+    If(os.dpd >1,os.principal_os + os.fee_os,0) AS `Total Overdue Amount`,
     IF(os.dpd<=0,0,os.dpd) AS `Overdue Days`,
 
     CASE

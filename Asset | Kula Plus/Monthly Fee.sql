@@ -59,6 +59,7 @@ WITH raw AS (
       AND t.country_code = @country_code
       AND t.stmt_txn_date <= @pre_last_day
       AND t.realization_date <= @pre_realization_date
+      AND is_reversed = 0
       AND ap.country_code = @country_code
       AND li.due_date BETWEEN @start_date AND @last_day
     GROUP BY l.loan_purpose
@@ -84,6 +85,7 @@ WITH raw AS (
       AND t.stmt_txn_date BETWEEN @start_date AND @last_day
       AND t.realization_date <= @realization_date
       AND ap.country_code = @country_code
+      AND is_reversed = 0
       AND (
             li.due_date BETWEEN @start_date AND @last_day
          OR li.due_date <= @pre_last_day

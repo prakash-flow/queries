@@ -86,6 +86,7 @@ payment AS (
     JOIN loan_installments li ON li.id = p.installment_id
     WHERE EXTRACT(YEAR_MONTH FROM a.stmt_txn_date) <= @month
       AND a.realization_date <= @closure_date
+      AND is_reversed = 0
       AND p.country_code = @country_code
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number

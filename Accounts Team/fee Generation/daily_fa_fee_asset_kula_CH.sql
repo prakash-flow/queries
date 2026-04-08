@@ -54,6 +54,7 @@ WITH
         JOIN loan_installments li ON li.id = p.installment_id
         WHERE formatDateTime(a.stmt_txn_date, '%Y%m') <= month_str
           AND a.realization_date <= closure_date_var
+          AND is_reversed = 0
           AND p.country_code = country_code_var
           AND toDate(li.due_date) <= last_day_var
         GROUP BY pay_loan_id, pay_inst_num
@@ -68,6 +69,7 @@ WITH
         JOIN account_stmts a ON a.id = p.account_stmt_id
         WHERE formatDateTime(a.stmt_txn_date, '%Y%m') <= month_str
           AND a.realization_date <= closure_date_var
+          AND is_reversed = 0
           AND p.country_code = country_code_var
         GROUP BY pay_loan_id
     ),

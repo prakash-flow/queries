@@ -77,6 +77,7 @@ payment AS (
         ON a.id = p.account_stmt_id
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
+      AND is_reversed = 0
       AND p.country_code = @country_code
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number
@@ -110,7 +111,7 @@ installment_level_analysis AS (
     LEFT JOIN payment p
         ON p.loan_doc_id = li.loan_doc_id
        AND p.installment_number = li.installment_number
-    WHERE li.due_date <= @last_day
+    WHERE date(li.due_date) <= @last_day
 )
 
 /* ===============================

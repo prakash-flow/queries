@@ -83,6 +83,7 @@ payment AS (
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
       AND p.country_code = @country_code
+      AND is_reversed = 0
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_id
 ),
@@ -219,6 +220,7 @@ futrue_fee_payments as (
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) > @month
       -- AND realization_date <= @closure_date
       AND p.country_code = @country_code
+      AND is_reversed = 0
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id
 ),
@@ -238,6 +240,7 @@ futur_payments as (
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) > @month
       -- AND realization_date <= @closure_date
       AND p.country_code = @country_code
+      AND is_reversed = 0
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id
 ),

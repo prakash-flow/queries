@@ -48,7 +48,7 @@ WITH latest_record_audits AS (
 
 SELECT
     l.loan_purpose,
-    COUNT(DISTINCT b.cust_id) AS repeat_cust_count
+    COUNT(DISTINCT b.cust_id) AS active_cust_count
 FROM borrowers b
 JOIN loans l     ON b.cust_id = l.cust_id
 JOIN loan_txns t ON l.loan_doc_id = t.loan_doc_id

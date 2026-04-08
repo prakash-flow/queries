@@ -66,6 +66,7 @@ payment_allocation AS (
     ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
+      AND is_reversed = 0
       AND DATE(a.stmt_txn_date)<=@last_day
       AND a.realization_date<=@realization_date
     GROUP BY p.loan_doc_id,p.installment_number
@@ -106,6 +107,7 @@ last_payment AS (
     FROM payment_allocation_items p
     JOIN account_stmts a ON a.id=p.account_stmt_id
     WHERE p.country_code=@country_code
+    AND is_reversed = 0
       AND a.country_code=@country_code
       AND DATE(a.stmt_txn_date)<=@last_day
     GROUP BY p.loan_doc_id

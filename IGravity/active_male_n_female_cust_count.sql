@@ -11,7 +11,7 @@ SELECT
   ) AS youth_count,
   COUNT(
     DISTINCT CASE
-      WHEN b.country_code = 'UGA'
+      WHEN  
       AND (
         a.field_2 != 'kampala'
       ) THEN b.cust_id

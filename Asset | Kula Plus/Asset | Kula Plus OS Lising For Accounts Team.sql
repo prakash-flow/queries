@@ -56,7 +56,7 @@ WITH loan AS (
         loan_doc_id,
         installment_number,
         principal_due AS installment_principal,
-        if(due_date <= '2025-12-31 23:59:59', fee_due, 0) AS installment_fee,
+        if(date(due_date) <= @last_day, fee_due, 0) AS installment_fee,
         due_date,
         (principal_due + fee_due) AS installment_amount
     FROM loan_installments
@@ -79,6 +79,7 @@ payment AS (
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
       AND p.country_code = @country_code
+      AND is_reversed = 0
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number
 ),

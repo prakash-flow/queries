@@ -74,6 +74,7 @@ payment AS (
         ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
+      AND is_reversed = 0
       AND p.country_code = @country_code
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number
