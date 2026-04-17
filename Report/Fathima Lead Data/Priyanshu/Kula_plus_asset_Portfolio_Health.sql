@@ -1,10 +1,10 @@
 SET @country_code = 'UGA';
-SET @month = '202602';
+SET @month = '202604';
 
 SET @last_day = (
     SELECT LAST_DAY(DATE(CONCAT(@month, '01')))
 );
--- SET @last_day = '2026-04-12';
+SET @last_day = '2026-04-16';
 
 WITH loan AS (
     SELECT
@@ -140,7 +140,7 @@ SELECT
     SUM(IF(par_days between 2 and 15,  loan_os, 0)) AS par_2and_15,
     SUM(IF(par_days between 16 and 30,  loan_os, 0)) AS par_16_and_30,
     SUM(IF(par_days between 31 and 60,  loan_os, 0)) AS par_31_and_60,
-    SUM(IF(par_days > 60,  loan_os, 0)) AS par_60,
+    SUM(IF(par_days between 61 and 90,  loan_os, 0)) AS par_61_par_90,
     SUM(IF(par_days > 90,  loan_os, 0)) AS par_90,
     -- COUNT(DISTINCT IF((loan_os > 0 or fee_os>0) , cust_id, NULL)) AS cust_count,
     -- COUNT(DISTINCT IF(par_days > 1 AND (loan_os > 0 or fee_os>0) , cust_id, NULL)) AS overdue_count,
@@ -158,8 +158,3 @@ GROUP BY la.loan_purpose
 ORDER BY la.loan_purpose desc
   -- ,l.loan_doc_id
   ;
-
-
-
-
-
