@@ -2,6 +2,12 @@ WITH
 commission_data AS (
     SELECT
         cc.alt_acc_num,
+        
+    COALESCE(
+        MAX(CASE WHEN cc.month = '202602' THEN cc.holder_name END),
+        MAX(CASE WHEN cc.month = '202601' THEN cc.holder_name END),
+        MAX(CASE WHEN cc.month = '202512' THEN cc.holder_name END)
+    ) AS `Agent Name`,
 
         -- Monthly commissions
         MAX(CASE WHEN cc.month = '202512' THEN cc.commission END) AS `202512`,
@@ -11,7 +17,7 @@ commission_data AS (
         -- Account status
         CASE
             WHEN a.alt_acc_num IS NOT NULL THEN 'account_exists'
-            WHEN cc.alt_acc_num IS NOT NULL THEN 'lead_exists'
+            WHEN cs.alt_acc_num IS NOT NULL THEN 'lead_exists'
             ELSE 'new_lead'
         END AS account_status,
 
@@ -179,6 +185,7 @@ first_fa_limits AS (
 
 SELECT
     cd.*,
+    CONCAT('256', cd.alt_acc_num) as `Agent Line Number`,
     ffl.first_fa_limit
 FROM commission_data cd
 JOIN first_fa_limits ffl

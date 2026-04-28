@@ -4,13 +4,13 @@ WITH
       cc.acc_number,
       MAX(
         CASE
-          WHEN cc.month = "202512" THEN cc.distributor_code
+          WHEN cc.month = "202603" THEN cc.distributor_code
         END
       ) AS distributor_code,
       UPPER(
         MAX(
           CASE
-            WHEN cc.month = "202512" THEN cc.holder_name
+            WHEN cc.month = "202603" THEN cc.holder_name
           END
         )
       ) AS holder_name,
@@ -18,7 +18,7 @@ WITH
       IF(
         MAX(
           CASE
-            WHEN cc.month = "202512" THEN cc.distributor_code
+            WHEN cc.month = "202603" THEN cc.distributor_code
           END
         ) IN (
           "PHONECOM_NYARUGENGE",
@@ -33,7 +33,7 @@ WITH
       IF(
         MAX(
           CASE
-            WHEN cc.month = "202512" THEN cc.distributor_code
+            WHEN cc.month = "202603" THEN cc.distributor_code
           END
         ) IN ("ETS_BART_MUSANZE", "ETS_BART_GICUMBI"),
         1,
@@ -42,19 +42,19 @@ WITH
       -- Commissions per month
       MAX(
         CASE
-          WHEN cc.month = "202510" THEN cc.commission
+          WHEN cc.month = "202601" THEN cc.commission
         END
-      ) AS `202510`,
+      ) AS `202601`,
       MAX(
         CASE
-          WHEN cc.month = "202511" THEN cc.commission
+          WHEN cc.month = "202602" THEN cc.commission
         END
-      ) AS `202511`,
+      ) AS `202602`,
       MAX(
         CASE
-          WHEN cc.month = "202512" THEN cc.commission
+          WHEN cc.month = "202603" THEN cc.commission
         END
-      ) AS `202512`,
+      ) AS `202603`,
       CASE
         WHEN a.acc_number IS NOT NULL THEN "account_exists"
         WHEN l.account_num IS NOT NULL THEN "lead_exists"
@@ -67,15 +67,15 @@ WITH
             (
               MAX(
                 CASE
-                  WHEN cc.month = "202510" THEN cc.commission
+                  WHEN cc.month = "202601" THEN cc.commission
                 END
               ) + MAX(
                 CASE
-                  WHEN cc.month = "202511" THEN cc.commission
+                  WHEN cc.month = "202602" THEN cc.commission
                 END
               ) + MAX(
                 CASE
-                  WHEN cc.month = "202512" THEN cc.commission
+                  WHEN cc.month = "202603" THEN cc.commission
                 END
               )
             ) / 3
@@ -89,15 +89,15 @@ WITH
         (
           MAX(
             CASE
-              WHEN cc.month = "202510" THEN cc.commission
+              WHEN cc.month = "202601" THEN cc.commission
             END
           ) + MAX(
             CASE
-              WHEN cc.month = "202511" THEN cc.commission
+              WHEN cc.month = "202602" THEN cc.commission
             END
           ) + MAX(
             CASE
-              WHEN cc.month = "202512" THEN cc.commission
+              WHEN cc.month = "202603" THEN cc.commission
             END
           )
         ) / 3
@@ -109,15 +109,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -127,15 +127,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -145,15 +145,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -163,15 +163,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -181,15 +181,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -199,15 +199,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -217,15 +217,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -235,15 +235,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -253,15 +253,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -271,15 +271,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -289,15 +289,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -307,15 +307,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -325,15 +325,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -343,15 +343,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -361,15 +361,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -379,15 +379,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -397,15 +397,15 @@ WITH
           (
             MAX(
               CASE
-                WHEN cc.month = "202510" THEN cc.commission
+                WHEN cc.month = "202601" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202511" THEN cc.commission
+                WHEN cc.month = "202602" THEN cc.commission
               END
             ) + MAX(
               CASE
-                WHEN cc.month = "202512" THEN cc.commission
+                WHEN cc.month = "202603" THEN cc.commission
               END
             )
           ) / 3
@@ -424,13 +424,13 @@ WITH
       LEFT JOIN persons p
         ON p.mobile_num = cc.acc_number
     WHERE
-      cc.month IN ("202510", "202511", "202512")
+      cc.month IN ("202601", "202602", "202603")
     GROUP BY
       cc.acc_number
     HAVING
-      `202510` IS NOT NULL
-      AND `202511` IS NOT NULL
-      AND `202512` IS NOT NULL
+      `202601` IS NOT NULL
+      AND `202602` IS NOT NULL
+      AND `202603` IS NOT NULL
   ),
   first_fa_limits AS (
     SELECT
