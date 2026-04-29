@@ -1,10 +1,10 @@
 WITH
   reassessment AS (
-    SELECT cust_id, prev_limit
+    SELECT cust_id, prev_limit, created_at
     FROM reassessment_results
     WHERE type = 'batch_reassessment'
       AND country_code = 'RWA'
-      AND DATE(created_at) = '2026-04-28'
+      AND DATE(created_at) = '2026-02-12'
   ),
 
   current_limit AS (
@@ -58,11 +58,11 @@ WITH
           ORDER BY l.disbursal_date DESC
         ) AS rn
       FROM loans l
-      JOIN customer_repayment cr
-        ON cr.cust_id = l.cust_id
+      JOIN customer_repayment cr ON cr.cust_id = l.cust_id
       WHERE l.disbursal_date > cr.loan_repaid_date
         AND (l.paid_date IS NOT NULL OR l.due_date <= (CURDATE() - INTERVAL 1 DAY))
-        AND l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl')
+        AND l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl') 
+        AND l.loan_purpose = 'float_advance'
         AND l.product_id NOT IN (
           SELECT id FROM loan_products WHERE product_type = 'float_vending'
         )
@@ -82,6 +82,68 @@ WITH
     GROUP BY c.cust_id, c.cur_limit
   ),
 
+  repayment_based_limit AS (
+    SELECT
+      r.cust_id,
+      (
+        SELECT MAX(lmt)
+        FROM (
+          SELECT 70000 AS lmt UNION ALL
+          SELECT 100000 UNION ALL
+          SELECT 150000 UNION ALL
+          SELECT 200000 UNION ALL
+          SELECT 300000 UNION ALL
+          SELECT 400000 UNION ALL
+          SELECT 500000 UNION ALL
+          SELECT 600000 UNION ALL
+          SELECT 700000 UNION ALL
+          SELECT 800000 UNION ALL
+          SELECT 900000 UNION ALL
+          SELECT 1000000 UNION ALL
+          SELECT 1500000 UNION ALL
+          SELECT 2000000 UNION ALL
+          SELECT 2500000 UNION ALL
+          SELECT 3000000
+        ) AS limits
+        WHERE limits.lmt <= LEAST(cl.cur_limit, l.min_loan_principal * 3)
+      ) AS repayment_based_limit
+    FROM reassessment r
+    JOIN current_limit cl ON cl.cust_id = r.cust_id
+    JOIN loan_summary l ON l.cust_id = r.cust_id
+    GROUP BY r.cust_id, cl.cur_limit, l.min_loan_principal
+  ),
+
+  post_reassessment_loans AS (
+    SELECT
+      l.cust_id,
+      SUM(l.loan_principal) AS total_disbursed_after_reassessment
+    FROM loans l
+    JOIN reassessment r ON r.cust_id = l.cust_id
+    WHERE l.disbursal_date > '2026-02-12'
+      AND l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl') 
+      AND l.loan_purpose = 'float_advance'
+      AND l.product_id NOT IN (
+        SELECT id FROM loan_products WHERE product_type = 'float_vending'
+      )
+    GROUP BY l.cust_id
+  ),
+
+  fa_upgrade_utilized AS (
+    SELECT
+      l.cust_id,
+      1 AS utilized_flag
+    FROM loans l
+    JOIN reassessment r ON r.cust_id = l.cust_id
+    WHERE l.disbursal_date > '2026-02-22'
+      AND l.loan_principal > r.prev_limit
+      AND l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl') 
+      AND l.loan_purpose = 'float_advance'
+      AND l.product_id NOT IN (
+        SELECT id FROM loan_products WHERE product_type = 'float_vending'
+      )
+    GROUP BY l.cust_id
+  ),
+
   loan_stats AS (
     SELECT
       l.cust_id,
@@ -89,7 +151,8 @@ WITH
       MAX(l.disbursal_date) AS last_disbursal_date
     FROM loans l
     JOIN reassessment r ON r.cust_id = l.cust_id
-    WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl')
+    WHERE l.status NOT IN ('voided', 'hold', 'pending_disbursal','pending_mnl_dsbrsl') 
+      AND l.loan_purpose = 'float_advance'
       AND l.product_id NOT IN (
         SELECT id FROM loan_products WHERE product_type = 'float_vending'
       )
@@ -100,11 +163,12 @@ WITH
     SELECT
       l.cust_id,
       l.loan_principal AS last_loan_amount,
-      l.disbursal_date AS last_disbursal_date
+      ls.last_disbursal_date
     FROM loans l
     JOIN loan_stats ls
       ON ls.cust_id = l.cust_id
      AND ls.last_disbursal_date = l.disbursal_date
+    WHERE l.loan_purpose = 'float_advance'
   )
 
 SELECT
@@ -114,45 +178,26 @@ SELECT
   p.mobile_num AS `Customer Mobile Number`,
   b.reg_date AS `Registration Date`,
   COALESCE(ls_all.total_loans_all, 0) AS `Total Loans`,
-  r.prev_limit AS `Assessed eligibility\n(Previous)`,
-  cl.cur_limit AS `Assessed eligibility\n(Upgrade)`,
+
+  CASE 
+    WHEN ll.last_disbursal_date IS NULL THEN 0 
+    WHEN DATE(ll.last_disbursal_date) > '2026-02-12' THEN 1 
+    ELSE 0 
+  END AS `Has Fa taken After reassessment`,
+
+  r.prev_limit AS `Assessed eligibility (Previous)`,
+  cl.cur_limit AS `Assessed eligibility (Upgrade)`,
+
   COALESCE(ll.last_loan_amount, 0) AS `Last Loan Amount`,
   ll.last_disbursal_date AS `Last Loan Date`,
 
-  CASE 
-    WHEN r.prev_limit < cl.cur_limit THEN 'Upgraded'
-    WHEN r.prev_limit = cl.cur_limit THEN 'Maintained'
-    ELSE 'Downgraded'
-  END AS `Has Upgraded`,
+  cr.current_limit AS `Repayment based eligibility (Current)`,
 
-  -- ✅ Slabbed Repayment Based Eligibility
-  COALESCE((
-    SELECT MAX(lmt)
-    FROM (
-      SELECT 70000 AS lmt UNION ALL
-      SELECT 100000 UNION ALL
-      SELECT 150000 UNION ALL
-      SELECT 200000 UNION ALL
-      SELECT 300000 UNION ALL
-      SELECT 400000 UNION ALL
-      SELECT 500000 UNION ALL
-      SELECT 600000 UNION ALL
-      SELECT 700000 UNION ALL
-      SELECT 800000 UNION ALL
-      SELECT 900000 UNION ALL
-      SELECT 1000000 UNION ALL
-      SELECT 1500000 UNION ALL
-      SELECT 2000000 UNION ALL
-      SELECT 2500000 UNION ALL
-      SELECT 3000000
-    ) slabs
-    WHERE slabs.lmt <=
-      IF(
-        b.category = 'Referral',
-        LEAST(cl.cur_limit, cr.current_limit, 400000),
-        LEAST(cl.cur_limit, cr.current_limit)
-      )
-  ), 70000) AS `Repayment based eligibility\n(Current)`,
+  COALESCE(prl.total_disbursed_after_reassessment, 0) 
+    AS `Total Disbursed After Reassessment`,
+
+  COALESCE(fu.utilized_flag, 0) 
+    AS `FA Upgrade Utilized`,
 
   UPPER(b.territory) AS `Territory`,
   UPPER(b.district) AS `District`,
@@ -167,5 +212,8 @@ JOIN borrowers b            ON b.cust_id = r.cust_id
 JOIN persons p              ON p.id = b.owner_person_id
 JOIN persons rm             ON rm.id = b.flow_rel_mgr_id
 LEFT JOIN loan_summary ls   ON ls.cust_id = r.cust_id
+LEFT JOIN repayment_based_limit rb ON rb.cust_id = r.cust_id
 LEFT JOIN loan_stats ls_all ON ls_all.cust_id = r.cust_id
-LEFT JOIN last_loan ll      ON ll.cust_id = r.cust_id;
+LEFT JOIN last_loan ll      ON ll.cust_id = r.cust_id
+LEFT JOIN post_reassessment_loans prl ON prl.cust_id = r.cust_id
+LEFT JOIN fa_upgrade_utilized fu ON fu.cust_id = r.cust_id;

@@ -10,7 +10,7 @@ WITH borrower AS (
         SUM(
             CASE 
                 WHEN b.country_code = 'UGA' AND (a.field_2 IS NULL OR a.field_2 != 'kampala') THEN 1
-                WHEN b.country_code = 'RWA' AND (a.field_2 IS NULL OR a.field_2 != 'Kigali') THEN 1
+                WHEN b.country_code = 'RWA' AND (a.field_1 IS NULL OR a.field_1 != 'Kigali') THEN 1
                 ELSE 0
             END
         ) AS rural_count
