@@ -42,7 +42,7 @@ JOIN
 WHERE
     l.status NOT IN ('voided','hold','pending_disbursal','pending_mnl_dsbrsl')
     AND l.product_id NOT IN (43, 75, 300)
-    AND t.txn_type = 'disbursal'
+    AND t.txn_type in ('disbursal', 'af_disbursal')
     AND l.country_code = @country_code
     AND (
         (

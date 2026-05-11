@@ -5,7 +5,7 @@
 
 WITH base_params AS (
     SELECT
-        '202601' AS var_month,
+        '202512' AS var_month,
         'UGA'    AS var_country_code
 ),
 
@@ -16,8 +16,9 @@ params AS (
         toDate(concat(substring(var_month, 1, 4), '-', substring(var_month, 5, 2), '-01')) AS var_start_date,
         toLastDayOfMonth(toDate(concat(substring(var_month, 1, 4), '-', substring(var_month, 5, 2), '-01'))) AS var_end_date,
         formatDateTime(subtractMonths(toDate(concat(substring(var_month, 1, 4), '-', substring(var_month, 5, 2), '-01')), 1), '%Y%m') AS var_prev_month,
-        toDateTime(concat(toString(CAST((SELECT max(closure_date) FROM closure_date_records WHERE country_code = (SELECT var_country_code FROM base_params) AND month = (SELECT var_month FROM base_params) AND status = 'enabled') AS Date)), ' 23:59:59')) AS var_realization_date,
-        toDateTime(concat(toString(CAST((SELECT max(closure_date) FROM closure_date_records WHERE country_code = (SELECT var_country_code FROM base_params) AND month = formatDateTime(subtractMonths(toDate(concat(substring((SELECT var_month FROM base_params), 1, 4), '-', substring((SELECT var_month FROM base_params), 5, 2), '-01')), 1), '%Y%m') AND status = 'enabled') AS Date)), ' 23:59:59')) AS var_prev_realization_date
+        -- FIX 1: Allowed 'closed' status for historical months
+        toDateTime(concat(toString(CAST((SELECT max(closure_date) FROM closure_date_records WHERE country_code = (SELECT var_country_code FROM base_params) AND month = (SELECT var_month FROM base_params) AND status IN ('enabled', 'closed')) AS Date)), ' 23:59:59')) AS var_realization_date,
+        toDateTime(concat(toString(CAST((SELECT max(closure_date) FROM closure_date_records WHERE country_code = (SELECT var_country_code FROM base_params) AND month = formatDateTime(subtractMonths(toDate(concat(substring((SELECT var_month FROM base_params), 1, 4), '-', substring((SELECT var_month FROM base_params), 5, 2), '-01')), 1), '%Y%m') AND status IN ('enabled', 'closed')) AS Date)), ' 23:59:59')) AS var_prev_realization_date
     FROM base_params
 ),
 
@@ -294,11 +295,7 @@ fa_loan_level_par AS (
 fa_revenue AS (
     SELECT
         l.loan_purpose AS fa_rev_loan_purpose,
-        CASE 
-            WHEN l.loan_purpose IN ('float_advance', 'adj_float_advance') 
-            THEN ifNull(tm.full_name, rm.full_name)
-            ELSE 'ALL'
-        END AS fa_rev_tm_name,
+        -- FIX 2: Removed TM breakdown to ensure clean MAX() rolling in the Final Select
         SUM(IF(
             lw.loan_doc_id IS NULL OR lw.write_off_date IS NULL OR toDate(t.txn_date) <= toDate(lw.write_off_date), 
             toFloat64(t.fee), 
@@ -321,8 +318,6 @@ fa_revenue AS (
     LEFT JOIN loan_write_off lw ON lw.loan_doc_id = l.loan_doc_id
         AND lw.country_code = l.country_code 
         AND toDate(lw.write_off_date) <= (SELECT var_end_date FROM params)
-    LEFT JOIN persons rm ON rm.id = l.flow_rel_mgr_id
-    LEFT JOIN persons tm ON tm.id = rm.report_to
     WHERE acc.id IN (1687,1783,21602,54126,44513,15668,15667,15666,9958,8362,18562,18563,18561,8512,18564,28220,2895,3973,34894,3605,4094,4161,44496,44516)
       AND l.loan_purpose IN ('float_advance', 'adj_float_advance')
       AND (
@@ -341,7 +336,7 @@ fa_revenue AS (
       AND ast.country_code = (SELECT var_country_code FROM params)
       AND l.country_code = (SELECT var_country_code FROM params)
       AND acc.country_code = (SELECT var_country_code FROM params)
-    GROUP BY l.loan_purpose, fa_rev_tm_name
+    GROUP BY l.loan_purpose
 ),
 
 ast_revenue AS (
@@ -422,28 +417,25 @@ ast_sales_commission AS (
 SELECT
     (SELECT var_month FROM params)              AS `Month`,
     l.loan_purpose                              AS `Loan Purpose`,
-    CASE 
-        WHEN l.loan_purpose IN ('float_advance', 'adj_float_advance') 
-        THEN ifNull(tm.full_name, rm.full_name)
-        ELSE 'ALL'
-    END                                         AS `TM Name`,
     countDistinct(reg_cust_id)                  AS `Reg Customers`,
     countDistinct(CASE WHEN l.loan_purpose IN ('growth_financing', 'asset_financing') THEN reg_cust_id ELSE enb_cust_id END) AS `Enabled Customers`,
     countDistinct(coalesce(act_fa_cust_id, act_ast_cust_id)) AS `Active Customers`,
     countDistinct(coalesce(ina_fa_cust_id, ina_ast_cust_id)) AS `Inactive Customers`,
-    sum(ifNull(coalesce(toFloat64(fa_llp.fa_par_loan_os), toFloat64(llp.par_loan_os)), 0)) AS `Total OS (Principal)`,
+    sum(ifNull(coalesce(toFloat64(fa_llp.fa_par_loan_os), toFloat64(llp.par_loan_os)), 0)) AS `Total OS Before Write off (Principal)`,
     sum(if(ifNull(coalesce(fa_llp.fa_par_days, llp.par_days), 0) <= 10, ifNull(coalesce(toFloat64(fa_llp.fa_par_loan_os), toFloat64(llp.par_loan_os)), 0), 0)) AS `Net Portfolio OS (Excl PAR 10)`,
     sum(if(ifNull(coalesce(fa_llp.fa_par_days, llp.par_days), 0) > 120, ifNull(coalesce(toFloat64(fa_llp.fa_par_loan_os), toFloat64(llp.par_loan_os)), 0), 0)) AS `PAR 120 (Write-offs)`,
-    max(
-        ifNull(coalesce(fa_rev.total_fee_received, ast_rev.total_fee_received), 0) + 
-        ifNull(ast_rev.unallocated_fee, 0) + 
-        ifNull(fa_rev.total_recovery, 0) + 
-        ifNull(fa_rev.total_penalty_received, 0) + 
-        ifNull(ast_sc.sales_commission, 0)
-    ) AS `Revenue (Fee + Other Incomes)`
+    -- ── Revenue split by component ──────────────────────────────────────────
+    -- Total Fee Received  : all products (FA/Kula → fa_rev, Asset/Kula+ → ast_rev)
+    max(ifNull(coalesce(fa_rev.total_fee_received, ast_rev.total_fee_received), 0))  AS `Total Fee Received`,
+    -- Unallocated Fee     : Asset & Kula Plus only (ast_rev covers only those purposes)
+    max(ifNull(ast_rev.unallocated_fee, 0))                                          AS `Unallocated Fee`,
+    -- Total Recovery      : FA & Kula only (fa_rev covers float_advance / adj_float_advance)
+    max(ifNull(fa_rev.total_recovery, 0))                                            AS `Total Recovery`,
+    -- Penalty             : FA (float_advance) only — mask out adj_float_advance (Kula)
+    max(ifNull(if(l.loan_purpose = 'float_advance', fa_rev.total_penalty_received, 0), 0)) AS `Penalty`,
+    -- Sales Commission    : Kula Plus & Asset only (ast_sc covers growth/asset_financing)
+    max(ifNull(ast_sc.sales_commission, 0))                                          AS `Sales Commission`
 FROM loans l
-LEFT  JOIN persons rm        ON rm.id = l.flow_rel_mgr_id
-LEFT  JOIN persons tm        ON tm.id = rm.report_to
 LEFT  JOIN reg_cust          ON l.cust_id = reg_cust_id
 LEFT  JOIN enabled_cust      ON l.cust_id = enb_cust_id
 LEFT  JOIN active_cust_fa    ON l.cust_id = act_fa_cust_id   AND l.loan_purpose IN ('float_advance', 'adj_float_advance')
@@ -452,11 +444,14 @@ LEFT  JOIN active_cust_ast   ON l.cust_id = act_ast_cust_id  AND l.loan_purpose 
 LEFT  JOIN inactive_cust_ast ON l.cust_id = ina_ast_cust_id  AND l.loan_purpose = inactive_cust_ast.loan_purpose
 LEFT  JOIN loan_level_par llp ON l.loan_doc_id = llp.par_loan_doc_id AND l.loan_purpose IN ('growth_financing', 'asset_financing')
 LEFT  JOIN fa_loan_level_par fa_llp ON l.loan_doc_id = fa_llp.fa_par_loan_doc_id AND l.loan_purpose IN ('float_advance', 'adj_float_advance')
-LEFT  JOIN fa_revenue fa_rev ON l.loan_purpose = fa_rev.fa_rev_loan_purpose AND CASE WHEN l.loan_purpose IN ('float_advance', 'adj_float_advance') THEN ifNull(tm.full_name, rm.full_name) ELSE 'ALL' END = fa_rev.fa_rev_tm_name
+-- FIX 2b: Simplified JOIN to prevent MAX() dropping historical revenue rows
+LEFT  JOIN fa_revenue fa_rev ON l.loan_purpose = fa_rev.fa_rev_loan_purpose 
 LEFT  JOIN ast_revenue ast_rev ON l.loan_purpose = ast_rev.ast_rev_loan_purpose
 LEFT  JOIN ast_sales_commission ast_sc ON l.loan_purpose = ast_sc.sc_loan_purpose
 WHERE l.country_code      = (SELECT var_country_code FROM params)
   AND l.product_id NOT IN  (43, 75, 300)
   AND l.status NOT IN      ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
   AND l.loan_purpose IN    ('float_advance', 'adj_float_advance', 'growth_financing', 'asset_financing')
-GROUP BY l.loan_purpose, `TM Name`;
+  -- FIX 3: Keep the base table from reading loans created AFTER the query's target month
+  AND toDate(l.disbursal_date) <= (SELECT var_end_date FROM params)
+GROUP BY l.loan_purpose;
