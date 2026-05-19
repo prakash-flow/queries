@@ -1,4 +1,4 @@
-SET @country_code = 'RWA';
+SET @country_code = 'UGA';
 SET @month = '202512';
 
 SET @last_day = (
@@ -257,8 +257,7 @@ select @country_code, @month, @last_day, @closure_date;
         o.Paid_amount as `Principal Paid & Fee Paid`,
         o.total_outstanding  as `Principal OS`,
             o.total_outstanding_fee as `Interest OS `,
-        par_days as `Arrear days`
-    ,
+        par_days as `Arrear days`,
         CASE
             WHEN par_days > 0 and (total_outstanding > 0 or total_outstanding_fee > 0) THEN 'Overdue'
             WHEN total_outstanding = 0 and total_outstanding_fee = 0 THEN 'Closed'
