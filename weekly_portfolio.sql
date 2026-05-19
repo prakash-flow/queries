@@ -1,5 +1,5 @@
 set
-  @last_day = '2024-09-09';
+  @last_day = '2026-04-12';
 
 set
   @country_code = 'UGA';

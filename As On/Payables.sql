@@ -159,6 +159,8 @@ set
         left join persons rm on rm.id = l.flow_rel_mgr_id
     )
   select
- 		*
+ 		SUM(`Excess`) `Excess`,
+ 		SUM(`Reversal`) `Reversal`,
+ 		SUM(`Unreversed`) `Unreversed`
   from
     loan_date;
