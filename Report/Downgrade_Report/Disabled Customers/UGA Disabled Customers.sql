@@ -1,3 +1,5 @@
+-- MYSQL Version
+
 SET @country_code = 'UGA';
 
 WITH disabled_customers AS (
@@ -132,3 +134,380 @@ LEFT JOIN ontime_repayment o ON o.cust_id = b.cust_id
 WHERE d.cust_id IS NOT NULL
 # ) as aa where   `Activity Status` is not null 
   ;
+
+
+-- Clickhouse Version
+
+WITH
+    'UGA' AS country_code,
+    toDateTime(concat(toString(yesterday()), ' 23:59:59')) AS report_ts,
+
+disabled_customers AS (
+
+    SELECT *
+    FROM (
+
+        SELECT
+            record_code AS cust_id,
+            created_by,
+            created_at,
+            remarks,
+            JSONExtractString(data_after,'reason') AS reason,
+            JSONExtractString(data_after,'status') AS status,
+
+            row_number() OVER (
+                PARTITION BY record_code
+                ORDER BY id DESC
+            ) AS rn
+
+        FROM record_audits
+
+        WHERE country_code = country_code
+
+    )
+
+    WHERE rn = 1
+      AND status = 'disabled'
+),
+
+valid_loans AS (
+
+    SELECT
+        loan_doc_id,
+        cust_id,
+        status,
+        loan_appl_date,
+        disbursal_date,
+        due_date,
+        paid_date
+
+    FROM loans
+
+    WHERE country_code = country_code
+      AND loan_purpose IN ('float_advance','adj_float_advance')
+      AND product_id NOT IN (43,75,300)
+      AND status NOT IN (
+            'voided',
+            'hold',
+            'pending_disbursal',
+            'pending_mnl_dsbrsl'
+      )
+),
+
+loan_activity AS (
+
+    SELECT
+        cust_id,
+        max(disbursal_date) AS latest_disbursal_date
+
+    FROM valid_loans
+
+    WHERE disbursal_date IS NOT NULL
+
+    GROUP BY cust_id
+),
+
+fa_activity AS (
+
+    SELECT
+        la.cust_id,
+
+        if(
+            la.latest_disbursal_date >= subtractDays(report_ts,30),
+            'active',
+            'inactive'
+        ) AS status
+
+    FROM loan_activity la
+
+    INNER JOIN disabled_customers dc
+        ON dc.cust_id = la.cust_id
+),
+
+latest_switch AS (
+
+    SELECT *
+    FROM (
+
+        SELECT
+            cust_id,
+            delivery_date,
+
+            row_number() OVER (
+                PARTITION BY cust_id
+                ORDER BY delivery_date DESC
+            ) AS rn
+
+        FROM sales
+
+        WHERE country_code = country_code
+          AND status='delivered'
+          AND delivery_date <= report_ts
+
+    )
+
+    WHERE rn = 1
+),
+
+switch_activity AS (
+
+    SELECT
+        cust_id,
+        delivery_date,
+
+        if(
+            delivery_date >= subtractDays(report_ts,30),
+            'active',
+            'inactive'
+        ) AS status
+
+    FROM latest_switch
+),
+
+latest_loan AS (
+
+    SELECT *
+    FROM (
+
+        SELECT
+            *,
+            row_number() OVER (
+                PARTITION BY cust_id
+                ORDER BY disbursal_date DESC
+            ) AS rn
+
+        FROM valid_loans
+
+    )
+
+    WHERE rn=1
+),
+
+latest_payment AS (
+
+    SELECT
+        loan_doc_id,
+        max(txn_date) AS max_txn_date
+
+    FROM loan_txns
+
+    WHERE txn_type='payment'
+
+    GROUP BY loan_doc_id
+),
+
+late_payment AS (
+
+    SELECT
+        l.cust_id,
+        count() AS late_payment
+
+    FROM valid_loans l
+
+    LEFT JOIN latest_payment p
+        ON p.loan_doc_id = l.loan_doc_id
+
+    WHERE l.status='settled'
+      AND dateDiff('day', l.due_date, p.max_txn_date) > 1
+
+    GROUP BY l.cust_id
+),
+
+ontime_repayment AS (
+
+    SELECT
+        l.cust_id,
+
+        round(
+
+            sum(
+
+                if(
+
+                    toDate(p.max_txn_date)
+                    <= addDays(toDate(l.due_date),1),
+
+                    1,
+                    0
+                )
+
+            )
+
+            / nullIf(count(),0),
+
+        2) AS ontime_repayment_rate
+
+    FROM valid_loans l
+
+    LEFT JOIN latest_payment p
+        ON p.loan_doc_id = l.loan_doc_id
+
+    WHERE l.status='settled'
+      AND l.paid_date <= report_ts
+
+    GROUP BY l.cust_id
+)
+
+SELECT
+
+    b.cust_id AS `Cust ID`,
+
+    multiIf(
+
+        ll.status='overdue',
+        'overdue',
+
+        fa.status IS NOT NULL,
+        fa.status,
+
+        'N/A'
+
+    ) AS `Activity Status`,
+
+    toDate(b.reg_date) AS `Reg Date`,
+
+    coalesce(
+        formatDateTime(
+            ll.disbursal_date,
+            '%Y-%m-%d'
+        ),
+        'N/A'
+    ) AS `Churn Date`,
+
+    coalesce(
+        formatDateTime(
+            dc.created_at,
+            '%Y-%m-%d'
+        ),
+        'N/A'
+    ) AS `Disable Date`,
+
+    coalesce(
+
+        toString(
+
+            dateDiff(
+                'day',
+                ll.disbursal_date,
+                dc.created_at
+            )
+
+        ),
+
+        'N/A'
+
+    ) AS `Diff Between Churn And Disable`,
+
+    multiIf(
+
+        dc.created_by != 0,
+        'Manual Disable',
+
+        dc.reason IN (
+            '90_day_inactivity',
+            'inactive'
+        ),
+        'In-active',
+
+        dc.reason='agreement_expired',
+        'Agreement expiry',
+
+        dc.reason='more_than_30_day_overdue',
+        'Overdue',
+
+        'Others'
+
+    ) AS `Reason For Disable`,
+
+    multiIf(
+
+    empty(ifNull(dc.reason,'')),
+    'N/A',
+
+    startsWith(ifNull(dc.reason,''), '['),
+
+    arrayStringConcat(
+
+        arrayMap(
+
+            x ->
+                initcap(
+                    replaceRegexpAll(
+                        x,
+                        '_',
+                        ' '
+                    )
+                ),
+
+            JSONExtract(
+                assumeNotNull(dc.reason),
+                'Array(String)'
+            )
+
+        ),
+
+        ', '
+
+    ),
+
+    initcap(
+        replaceRegexpAll(
+            ifNull(dc.reason,''),
+            '_',
+            ' '
+        )
+    )
+
+) AS `Source Disable Reason`,
+    dc.remarks AS `Disable Remarks`,
+
+    coalesce(
+        formatDateTime(
+            sa.delivery_date,
+            '%Y-%m-%d'
+        ),
+        'N/A'
+    ) AS `Switch Delivery Date`,
+
+    coalesce(
+        sa.status,
+        'N/A'
+    ) AS `Float Switch Status`,
+
+    b.tot_loans AS `Total Loans`,
+
+    coalesce(
+        lp.late_payment,
+        0
+    ) AS `Total Late Loans`,
+
+    coalesce(
+        toString(
+            orx.ontime_repayment_rate
+        ),
+        'N/A'
+    ) AS `Ontime Repayment Percentage`
+
+FROM borrowers b
+
+INNER JOIN disabled_customers dc
+    ON dc.cust_id = b.cust_id
+
+LEFT JOIN latest_loan ll
+    ON ll.cust_id = b.cust_id
+
+LEFT JOIN fa_activity fa
+    ON fa.cust_id = b.cust_id
+
+LEFT JOIN switch_activity sa
+    ON sa.cust_id = b.cust_id
+
+LEFT JOIN late_payment lp
+    ON lp.cust_id = b.cust_id
+
+LEFT JOIN ontime_repayment orx
+    ON orx.cust_id = b.cust_id
+
+WHERE b.country_code = country_code
+
+ORDER BY dc.created_at DESC;
