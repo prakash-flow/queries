@@ -1,10 +1,10 @@
 SET @country_code = 'UGA';
-SET @month = '202604';
+SET @month = '202605';
 
 SET @last_day = (
     SELECT LAST_DAY(DATE(CONCAT(@month, '01')))
 );
-SET @last_day = '2026-04-16';
+SET @last_day = '2026-05-25';
 
 WITH loan AS (
     SELECT
@@ -51,7 +51,6 @@ loan_installment AS (
     FROM loan_installments
     WHERE loan_doc_id IN (SELECT loan_doc_id FROM loan)
 ),
-
 payment AS (
     SELECT
         p.loan_doc_id,
@@ -60,12 +59,13 @@ payment AS (
         SUM(p.principal_amount) AS paid_principal,
         sum(p.fee_amount) as paid_fee
     FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
+    JOIN loan_txns a
+        ON a.id = p.loan_txn_id
     JOIN loan_installments li
         ON li.id = p.installment_id 
-    WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
+    WHERE EXTRACT(YEAR_MONTH FROM txn_date) <= @month
       AND is_reversed = 0
+      AND a.txn_type in ('af_payment','fee_waiver')
       AND p.country_code = @country_code
       AND a.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number,p.installment_id
