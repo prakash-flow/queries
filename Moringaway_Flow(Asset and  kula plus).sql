@@ -68,15 +68,15 @@ payment AS (
         p.installment_number,
         SUM(p.principal_amount) AS paid_principal
     FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
+    JOIN loan_txns lt
+        ON lt.id = p.loan_txn_id
     JOIN loan_installments li
         ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
-    WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
-      AND realization_date <= @closure_date
-      AND is_reversed = 0
+    WHERE EXTRACT(YEAR_MONTH FROM lt.txn_date) <= @month
+      AND lt.realization_date <= @closure_date
+      AND p.is_reversed = 0
       AND p.country_code = @country_code
-      AND a.country_code = @country_code
+      AND lt.country_code = @country_code
     GROUP BY p.loan_doc_id, p.installment_number
 ),
 

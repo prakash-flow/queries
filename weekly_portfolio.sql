@@ -1,5 +1,5 @@
 set
-  @last_day = '2026-04-12';
+  @last_day = '2026-02-08';
 
 set
   @country_code = 'UGA';
@@ -18,6 +18,7 @@ SET
   
 -- Existing records are taken by using month end realization_date
 set @realization_date = (select closure_date from closure_date_records where country_code = @country_code and month = @month and status = 'enabled');
+-- set @realization_date = '2026-03-10 23:59:59';
 
 select
   @month,
@@ -144,20 +145,21 @@ with par as (
       SELECT 
         loan_doc_id, 
         SUM(
-          if(txn_type = 'payment', amount, 0)
+          if(txn_type = 'payment', ifnull(principal,0), 0)
         ) AS total_amount 
       FROM 
         loan_txns 
       WHERE 
         DATE(txn_date) <= @last_day 
+        AND txn_type in ('disbursal','payment')
         AND realization_date <= @realization_date 
       GROUP BY 
         loan_doc_id
-    ) t, 
-    loans l 
+    ) t
+   Join loans l ON l.loan_doc_id = t.loan_doc_id
   WHERE 
-    l.loan_doc_id = t.loan_doc_id 
-    and (
+   
+     (
       status not in(
         'voided', 'hold', 'pending_disbursal', 
         'pending_mnl_dsbrsl'
@@ -183,6 +185,7 @@ with par as (
       )
     ) 
     and l.country_code = @country_code
+  
 ) 
 select "Week", DATE_FORMAT(@last_day, '%M %d, %Y')
 union all

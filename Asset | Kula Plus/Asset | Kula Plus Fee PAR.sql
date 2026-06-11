@@ -73,9 +73,9 @@ payment AS (
         SUM(p.principal_amount) AS paid_principal,
         SUM(p.fee_amount) AS paid_fee
     FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
-    WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
+    JOIN loan_txns a
+        ON a.id = p.loan_txn_id
+    WHERE EXTRACT(YEAR_MONTH FROM txn_date) <= @month
       AND realization_date <= @closure_date
       AND is_reversed = 0
       AND p.country_code = @country_code
