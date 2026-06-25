@@ -14,7 +14,6 @@ SET @closure_date = (
       AND country_code = @country_code
 );
 
-SELECT @country_code, @month, @report_end, @next_month_start, @next_month_end;
 
 
 WITH loan AS (
@@ -73,26 +72,50 @@ WITH loan AS (
 ),
 
 payment AS (
-    SELECT
-        p.loan_doc_id,
-        p.installment_number,
+  SELECT
+    p.loan_doc_id,
+    p.installment_number,
 
-        SUM(p.principal_amount) AS principal_paid,
-        SUM(p.fee_amount)       AS fee_paid
+    SUM(
+        CASE
+            WHEN a.txn_type = 'af_payment'
+            THEN p.principal_amount
+            ELSE 0
+        END
+    ) AS principal_paid,
 
-    FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
+    SUM(
+        CASE
+            WHEN a.txn_type = 'af_payment'
+            THEN p.fee_amount
+            ELSE 0
+        END
+    ) AS fee_paid,
 
-    WHERE a.realization_date <= @closure_date
-      AND a.stmt_txn_date <= @report_end
-      AND p.country_code = @country_code
-      AND is_reversed = 0
-      AND a.country_code = @country_code
+    SUM(
+        CASE
+            WHEN a.txn_type = 'fee_waiver'
+            THEN p.fee_amount
+            ELSE 0
+        END
+    ) AS fee_waived
 
-    GROUP BY p.loan_doc_id, p.installment_number
+FROM payment_allocation_items p
+JOIN loan_txns a
+    ON a.id = p.loan_txn_id
+
+WHERE a.realization_date <= @closure_date
+  AND a.txn_date <= @report_end
+  AND p.country_code = @country_code
+  AND a.loan_doc_id = 'UFLW-40766B-1565305'
+  AND a.txn_type IN ('af_payment', 'fee_waiver')
+  AND p.is_reversed = 0
+  AND a.country_code = @country_code
+
+GROUP BY
+    p.loan_doc_id,
+    p.installment_number
 ),
-
 installment_os AS (
     SELECT
         li.loan_doc_id,
@@ -104,6 +127,7 @@ installment_os AS (
 
         COALESCE(p.principal_paid,0) AS principal_paid,
         COALESCE(p.fee_paid,0) AS fee_paid,
+        coalesce(p.fee_waived,0) as fee_waived,
 
         (li.principal_due - COALESCE(p.principal_paid,0)) AS principal_os,
         (li.fee_due - COALESCE(p.fee_paid,0)) AS fee_os,
@@ -165,21 +189,36 @@ loan_level AS (
 paid_till_report AS (
     SELECT
         p.loan_doc_id,
-        SUM(p.principal_amount + p.fee_amount) AS total_paid
+
+        SUM(
+            CASE
+                WHEN a.txn_type = 'af_payment'
+                THEN p.principal_amount + p.fee_amount
+                ELSE 0
+            END
+        ) AS total_paid,
+
+        SUM(
+            CASE
+                WHEN a.txn_type = 'fee_waiver'
+                THEN p.fee_amount
+                ELSE 0
+            END
+        ) AS fee_waived
 
     FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
+    JOIN loan_txns a
+        ON a.id = p.loan_txn_id
 
     WHERE a.realization_date <= @closure_date
-      AND a.stmt_txn_date <= @report_end
+      AND a.txn_date <= @report_end
       AND a.country_code = @country_code
       AND p.country_code = @country_code
-      AND is_reversed = 0
+      AND p.is_reversed = 0
+      AND a.txn_type IN ('af_payment', 'fee_waiver')
 
     GROUP BY p.loan_doc_id
 )
-
 SELECT
 
     l.cust_name AS client_name,
@@ -204,6 +243,7 @@ SELECT
     (l.number_of_installments + l.schedule_grace_period) AS tenor_months,
 
     COALESCE(ptr.total_paid,0) AS total_paid_till_report,
+    coalesce(ptr.fee_waived,0) as fee_waived,
 
     (ll.principal_os_as_on_prev_month) as principal_os,
     ll.interest_os_as_on_prev_month,
@@ -228,3 +268,12 @@ LEFT JOIN paid_till_report ptr
        ON ptr.loan_doc_id = l.loan_doc_id
 
 ORDER BY customer_id, loan_sequence;
+
+
+
+
+
+
+
+
+

@@ -72,12 +72,13 @@ payment AS (
         SUM(p.principal_amount) AS paid_principal,
         SUM(p.fee_amount) AS paid_fee 
     FROM payment_allocation_items p
-    JOIN account_stmts a
-        ON a.id = p.account_stmt_id
+    JOIN loan_txns a
+        ON a.id = p.loan_txn_id
     JOIN loan_installments li
         ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE EXTRACT(YEAR_MONTH FROM stmt_txn_date) <= @month
       AND realization_date <= @closure_date
+      AND a.txn_type in ('af_payment','fee_waiver')
       AND p.country_code = @country_code
       AND is_reversed = 0
       AND a.country_code = @country_code
