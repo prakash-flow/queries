@@ -26,6 +26,8 @@ SET @prev_closure_date = (
 
 select 
   @month AS `Realization Month (Report Month)`, 
+  l.cust_id AS `Customer ID`,
+  l.cust_name AS `Customer Name`,
   l.loan_doc_id AS `Unique ID`, 
   a.acc_number AS `Account Number`, 
   t.txn_id AS `Tranaction ID`, 
