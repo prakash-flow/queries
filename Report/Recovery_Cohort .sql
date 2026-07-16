@@ -11,7 +11,7 @@ select l.country_code , YEARWEEK(disbursal_date, 4) as disbursal_week , sum(if((
   					  
   					 from loans l ,loan_txns t where l.loan_doc_id = t.loan_doc_id and (yearweek(disbursal_date, 4) between 202544 and 202622) and l.loan_doc_id not in (select loan_doc_id from loan_write_off where type = 'fraud') 
     and l.country_code = 'RWA'  and l.product_id not in ('43','75','300')   and l.status not in ('voided','hold','pending_disbursal','pending_mnl_dsbrsl')  
-    and l.loan_purpose in ('adj_float_advance') 
+    and l.loan_purpose in ('adj_float_advance')  
     group by l.country_code, YEARWEEK(disbursal_date, 4)  order by YEARWEEK(disbursal_date, 4)
 
 
