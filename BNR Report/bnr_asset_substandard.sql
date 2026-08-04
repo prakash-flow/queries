@@ -63,11 +63,11 @@ payment_allocation AS (
     FROM payment_allocation_items p
     JOIN account_stmts a ON a.id=p.account_stmt_id
     JOIN loan_installments li
-        ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
+    ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
-      AND DATE(a.stmt_txn_date)<=@last_day
       AND is_reversed = 0
+      AND DATE(a.stmt_txn_date)<=@last_day
       AND a.realization_date<=@realization_date
     GROUP BY p.loan_doc_id,p.installment_number
 ),
@@ -107,9 +107,9 @@ last_payment AS (
     FROM payment_allocation_items p
     JOIN account_stmts a ON a.id=p.account_stmt_id
     WHERE p.country_code=@country_code
+    AND is_reversed = 0
       AND a.country_code=@country_code
       AND DATE(a.stmt_txn_date)<=@last_day
-      AND is_reversed = 0
     GROUP BY p.loan_doc_id
 ),
 
@@ -134,7 +134,8 @@ SELECT
   '' AS is_ontime_repaid,
   'Growing Mobile Money Business' AS purpose_of_loan,
   '' AS branch_name,
-  '' AS `Physical Guarantee(Collateral)`,
+  '' AS `Collateral Type`,
+  '' AS `Guarantee(Collateral) Ammount`,
   '' AS district,
   '' AS sector,
   '' AS cell,
@@ -153,7 +154,7 @@ SELECT
   fd.first_due_date AS `Agreed Date of First Payment (Principal)`,
   lp.last_payment_date AS `Date of Last Payment (Principal)`,
 
-  '' AS arrear_start,
+  l.min_overdue_due_date AS arrear_start,
   @last_day AS report_date,
   number_of_installments,
 
@@ -161,12 +162,12 @@ SELECT
   IFNULL(pic.os_installment_count,0) AS os_installment_count,
   `paid_principal`,
   l.loan_os AS net_principal,
-  '' `Security/Compulsory Savings`,
+  '' `Eligible Collateral provided`,
   l.loan_os AS net_principal,
-  GREATEST(CASE
+  CASE
     WHEN l.loan_os = 0 OR l.min_overdue_due_date IS NULL THEN 0
     ELSE DATEDIFF(@last_day,l.min_overdue_due_date)
-  END, 0) AS od_days
+  END AS od_days
 
 FROM disbursals d
 JOIN loan_level_os l ON d.loan_doc_id=l.loan_doc_id
@@ -179,4 +180,4 @@ WHERE
   AND CASE
         WHEN l.loan_os = 0 OR l.min_overdue_due_date IS NULL THEN 0
         ELSE DATEDIFF(@last_day,l.min_overdue_due_date)
-      END <= 0;
+      END BETWEEN 90 AND 179;

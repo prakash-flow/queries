@@ -21,7 +21,7 @@ SET @realization_date = (
 -- PORTFOLIO CATEGORY CONTROL
 -- =========================
 
-SET @having_condition = "<= 0";   -- Normal
+SET @having_condition = 'BETWEEN 90 AND 179';  -- Substandard
 
 -- =========================
 -- DEBUG CHECK
@@ -37,7 +37,6 @@ SELECT
 -- =========================
 -- MAIN QUERY CONSTRUCTION
 -- =========================
-
 SET @query = CONCAT("
 WITH disbursals AS (
   SELECT
@@ -139,14 +138,16 @@ SELECT
   d.cust_name,
   d.cust_id,
   d.cust_mobile_num,
-  COALESCE(ci.gender, '') AS gender,
+  if(COALESCE(ci.gender, '') = 'unknown', 'male', COALESCE(ci.gender, '')) AS gender,
   TIMESTAMPDIFF(YEAR, ci.dob, '", @last_day, "') AS age,
   'Customer' AS relationship,
   '' AS marital_status,
   COALESCE(io.is_ontime_repaid, 'no') AS is_ontime_repaid,
+  '' AS other_institution,
   'Growing Mobile Money Business' AS purpose_of_loan,
   '' AS branch_name,
-  '' physical_grantee,
+  '' AS collateral_type,
+  '' AS collateral_amt,
   ci.field_2 AS district,
   ci.field_3 AS sector,
   ci.field_4 AS cell,

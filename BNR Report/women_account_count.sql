@@ -1,7 +1,7 @@
-set @month = '202412';
+set @month = '202606';
 set @country_code = 'RWA';
 
-set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));;
+set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));
 
 select @last_day, @country_code;
 

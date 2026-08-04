@@ -1,8 +1,8 @@
 -- =========================
 -- CONFIGURATION VARIABLES
 -- =========================
-SET @report_date = '2024-12-31';
-SET @month = '202412';
+SET @report_date = '2026-06-30';
+SET @month = '202606';
 SET @country_code = 'RWA';
 
 -- =========================
@@ -21,10 +21,10 @@ SET @realization_date = (
 -- PORTFOLIO CATEGORY CONTROL
 -- =========================
 
--- SET @having_condition = 'BETWEEN 1 AND 89';    -- Watch
+SET @having_condition = 'BETWEEN 1 AND 89';    -- Watch
 -- SET @having_condition = 'BETWEEN 90 AND 179';  -- Substandard
 -- SET @having_condition = 'BETWEEN 180 AND 359'; -- Doubtful
-SET @having_condition = 'BETWEEN 360 AND 719';    -- Loss
+-- SET @having_condition = 'BETWEEN 360 AND 719';    -- Loss
 
 -- =========================
 -- DEBUG CHECK

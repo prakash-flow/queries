@@ -4,7 +4,7 @@ WITH
     FROM reassessment_results
     WHERE type = 'batch_reassessment'
       AND country_code = 'RWA'
-      AND DATE(created_at) = '2026-04-28'
+      AND DATE(created_at) IN ('2026-07-22', '2026-07-28', '2026-08-03')
   ),
 
   current_limit AS (
@@ -118,15 +118,20 @@ SELECT
   cl.cur_limit AS `Assessed eligibility\n(Upgrade)`,
   COALESCE(ll.last_loan_amount, 0) AS `Last Loan Amount`,
   ll.last_disbursal_date AS `Last Loan Date`,
-
+  if (cl.cur_limit <= COALESCE(ll.last_loan_amount, 0) AND DATEDIFF(NOW(), ll.last_disbursal_date) <= 30, "Utilized", "Not Utilized") `Utilization`,
   CASE 
     WHEN r.prev_limit < cl.cur_limit THEN 'Upgraded'
     WHEN r.prev_limit = cl.cur_limit THEN 'Maintained'
     ELSE 'Downgraded'
   END AS `Has Upgraded`,
+  CASE WHEN DATEDIFF(NOW(), COALESCE(ll.last_disbursal_date, b.reg_date)) > 30 THEN "Inactive" ELSE "Active" END AS `Activity Status`,
 
-  -- ✅ Slabbed Repayment Based Eligibility
-  COALESCE((
+  UPPER(b.territory) AS `Territory`,
+  UPPER(b.district) AS `District`,
+  UPPER(b.location) AS `Location`,
+  UPPER(CONCAT_WS(' ', rm.first_name, rm.middle_name, rm.last_name)) AS `RM Name`,
+  rm.mobile_num AS `RM Mobile Number`,
+    COALESCE((
     SELECT MAX(lmt)
     FROM (
       SELECT 70000 AS lmt UNION ALL
@@ -152,13 +157,7 @@ SELECT
         LEAST(cl.cur_limit, cr.current_limit, 400000),
         LEAST(cl.cur_limit, cr.current_limit)
       )
-  ), 70000) AS `Repayment based eligibility\n(Current)`,
-
-  UPPER(b.territory) AS `Territory`,
-  UPPER(b.district) AS `District`,
-  UPPER(b.location) AS `Location`,
-  UPPER(CONCAT_WS(' ', rm.first_name, rm.middle_name, rm.last_name)) AS `RM Name`,
-  rm.mobile_num AS `RM Mobile Number`
+  ), 70000) AS `Repayment based eligibility\n(Current)`
 
 FROM reassessment r
 JOIN current_limit cl       ON cl.cust_id = r.cust_id

@@ -1,6 +1,6 @@
 set @country_code = 'RWA';
-Set @start_month = 202601;
-set @end_month = '202603';
+Set @start_month = 202604;
+set @end_month = '202606';
 
 set @last_day = (LAST_DAY(DATE(CONCAT(@end_month, "01"))));
 select @country_code, @start_month, @end_month, @last_day;
@@ -36,7 +36,7 @@ FROM
           product_type = 'float_vending'
       ) 
       and l.country_code = 'RWA' 
-      and txn_type = 'disbursal' 
+      and txn_type in ('disbursal', 'af_disbursal') 
       and extract(year_month from  disbursal_date) between @start_month 
       and @end_month
     having age <= 35

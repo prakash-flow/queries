@@ -1,5 +1,5 @@
-set @report_date = '2024-12-31';
-set @month = '202412';
+set @report_date = '2026-06-30';
+set @month = '202606';
 set @country_code = 'RWA';
 
 set @last_day = (LAST_DAY(DATE(CONCAT(@month, "01"))));

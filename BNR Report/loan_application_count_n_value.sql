@@ -1,6 +1,6 @@
 set @country_code = 'RWA';
-set @start_month = '202401';
-set @end_month = '202412';
+set @start_month = '202604';
+set @end_month = '202606';
 
 select @country_code, @start_month, @end_month;
 
