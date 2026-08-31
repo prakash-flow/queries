@@ -1,19 +1,20 @@
 SET @country_code = 'UGA';
-SET @month = '202602';
+SET @month = '202608';
 
 SET @report_date       = LAST_DAY(DATE(CONCAT(@month,'01')));
 SET @report_end        = CONCAT(@report_date, ' 23:59:59');
 SET @next_month_start  = DATE_ADD(@report_end, INTERVAL 1 SECOND);
 SET @next_month_end    = CONCAT(LAST_DAY(@next_month_start), ' 23:59:59');
 
-SET @closure_date = (
-    SELECT closure_date
-    FROM flow_api.closure_date_records
-    WHERE status = 'enabled'
-      AND month = @month
-      AND country_code = @country_code
-);
-
+-- SET @closure_date = (
+--     SELECT closure_date
+--     FROM flow_api.closure_date_records
+--     WHERE status = 'enabled'
+--       AND month = @month
+--       AND country_code = @country_code
+-- );
+SET @closure_date = @report_end;
+SELECT @country_code,@report_end;
 
 
 WITH loan AS (
@@ -28,6 +29,7 @@ WITH loan AS (
         l.number_of_installments,
         l.schedule_grace_period,
         l.disbursal_date,
+        l.status AS loan_status,
 
         ROW_NUMBER() OVER (
             PARTITION BY l.cust_id
@@ -38,7 +40,6 @@ WITH loan AS (
     JOIN loan_txns lt
         ON lt.loan_doc_id = l.loan_doc_id
        AND lt.txn_type = 'af_disbursal'
-
     WHERE l.loan_purpose IN ('growth_financing','asset_financing')
       AND l.country_code = @country_code
       AND l.disbursal_date <= @report_end
@@ -70,7 +71,6 @@ WITH loan AS (
               )
       )
 ),
-
 payment AS (
   SELECT
     p.loan_doc_id,
@@ -107,8 +107,7 @@ JOIN loan_txns a
 WHERE a.realization_date <= @closure_date
   AND a.txn_date <= @report_end
   AND p.country_code = @country_code
-  AND a.loan_doc_id = 'UFLW-40766B-1565305'
-  AND a.txn_type IN ('af_payment', 'fee_waiver')
+   AND a.txn_type IN ('af_payment', 'fee_waiver')
   AND p.is_reversed = 0
   AND a.country_code = @country_code
 
@@ -123,17 +122,17 @@ installment_os AS (
         li.due_date,
 
         li.principal_due,
-        li.fee_due,
+        IF(li.fee_generated = 1, li.fee_due, 0) AS fee_due,
 
         COALESCE(p.principal_paid,0) AS principal_paid,
         COALESCE(p.fee_paid,0) AS fee_paid,
         coalesce(p.fee_waived,0) as fee_waived,
 
         (li.principal_due - COALESCE(p.principal_paid,0)) AS principal_os,
-        (li.fee_due - COALESCE(p.fee_paid,0)) AS fee_os,
+        (IF(li.fee_generated = 1, li.fee_due, 0) - COALESCE(p.fee_paid,0) - coalesce(p.fee_waived,0)) AS fee_os,
 
         (li.principal_due - COALESCE(p.principal_paid,0)) +
-        (li.fee_due - COALESCE(p.fee_paid,0)) AS installment_os
+        (IF(li.fee_generated = 1, li.fee_due, 0) - COALESCE(p.fee_paid,0) - coalesce(p.fee_waived,0)) AS installment_os
 
     FROM loan_installments li
     LEFT JOIN payment p
@@ -167,7 +166,7 @@ loan_level AS (
                 0
             )
         ) AS next_month_collected,
-  
+
         MIN(
           IF(due_date BETWEEN @next_month_start AND @next_month_end, due_date, NULL)
         ) AS next_month_first_due_date,
@@ -229,11 +228,11 @@ SELECT
     l.cust_id     AS customer_id,
     l.loan_doc_id AS loan_id,
 
-    case 
+    case
       when l.loan_purpose = 'growth_financing' then 'Kula Plus'
       when l.loan_purpose = 'asset_financing' then 'Kula Asset'
     end as loan_purpose,
-  
+
     l.loan_sequence,
 
     DATE(l.disbursal_date) AS disbursal_date,
@@ -249,6 +248,7 @@ SELECT
     ll.interest_os_as_on_prev_month,
 
     CASE
+      WHEN l.loan_status IN ('settled','closed') THEN 'Closed'
       WHEN ll.total_overdue_os_as_on_prev_month > 0 THEN 'Overdue'
       WHEN ll.total_due = 0 THEN 'Closed'
       ELSE 'Ongoing'
@@ -268,12 +268,3 @@ LEFT JOIN paid_till_report ptr
        ON ptr.loan_doc_id = l.loan_doc_id
 
 ORDER BY customer_id, loan_sequence;
-
-
-
-
-
-
-
-
-
