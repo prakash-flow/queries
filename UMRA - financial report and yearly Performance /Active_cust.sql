@@ -35,13 +35,13 @@ SET @pre_realization_date = (
 
 
 WITH latest_record_audits AS (
-    SELECT r1.record_code,
-           JSON_UNQUOTE(JSON_EXTRACT(r1.data_after, '$.status')) AS status
-    FROM record_audits r1
+SELECT r1.entity_id,
+           current_status AS status,
+    FROM status_audit_logs r1
     JOIN (
-        SELECT record_code, MAX(id) AS id
-        FROM record_audits
-        WHERE created_at <= @last_day
+        SELECT entity_id, MAX(id) AS id
+        FROM status_audit_logs
+        WHERE date(modified_time) <= @last_day
         GROUP BY record_code
     ) r2 ON r1.id = r2.id
 )
