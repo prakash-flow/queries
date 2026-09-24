@@ -1,6 +1,7 @@
 WITH
   account_cte AS (
     SELECT
+      id,
       cust_id,
       acc_number,
       if(
@@ -8,14 +9,22 @@ WITH
         substring(alt_acc_num, 2),
         alt_acc_num
       ) AS alt_acc_num,
-      status
+      status,
+      `limit`
     FROM
       (
         SELECT
+          id,
           cust_id,
           acc_number,
           alt_acc_num,
           status,
+          arrayMax(
+            arrayMap(
+              x -> JSONExtractFloat(x, 'limit'),
+              JSONExtractArrayRaw(conditions)
+            )
+          ) AS `limit`,
           ROW_NUMBER() OVER (
             PARTITION BY
               alt_acc_num
@@ -44,10 +53,11 @@ WITH
       rn = 1
   )
 SELECT
-  a.cust_id AS `Customer ID`,
-  a.acc_number AS `Account Number`,
   concat('256', a.alt_acc_num) AS `Agent Line Number`,
-  p.mobile_num AS `Mobile Number`
+  a.cust_id AS `Customer ID`,
+  a.acc_number AS `Agent ID`,
+  p.mobile_num AS `Mobile Number`,
+  a.`limit` AS `Previous Limit`
 FROM
   account_cte a
   INNER JOIN borrowers b ON b.cust_id = a.cust_id
