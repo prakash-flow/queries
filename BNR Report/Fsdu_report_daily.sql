@@ -1,13 +1,13 @@
 -- ASIGMA DCGF reports - day-wise, for manual sending / cross-verifying
 -- app/Scripts/python/asigma/send_reports.py (same logic and the same field names as the API payload).
 --
--- Set the date range (default: yesterday) and the sub-lenders (comma separated, e.g. 'FSD2,UDFC'),
+-- Set the date range (default: today - 5 days, same as DEFAULT_DAYS_BACK in send_reports.py) and the sub-lenders (comma separated, e.g. 'FSD2,UDFC'),
 -- then uncomment ONE of the SELECTs at the bottom.
 
 SET @country_code     = 'UGA';
 SET @sub_lender_codes = 'FSD2';
-SET @from_date        = DATE_SUB(CURDATE(), INTERVAL 1 DAY);   -- or e.g. '2026-09-22'
-SET @to_date          = DATE_SUB(CURDATE(), INTERVAL 1 DAY);   -- or e.g. '2026-09-22'
+SET @from_date        = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
+SET @to_date          = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
 
 SET @start_date = CONCAT(DATE(@from_date), ' 00:00:00');
 SET @end_date   = CONCAT(DATE(@to_date), ' 23:59:59');
