@@ -34,6 +34,7 @@ WITH txn_totals AS (
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
       AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
       AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
+      AND l.disbursal_date <= @end_date 
       AND t.txn_type IN ('payment', 'fee_waiver')
       AND t.txn_date <= @end_date
       AND t.realization_date <= @end_date
@@ -71,6 +72,7 @@ loan_os AS (
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
       AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
       AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
+      AND l.disbursal_date <= @end_date 
 ),
 
 loan_status AS (
