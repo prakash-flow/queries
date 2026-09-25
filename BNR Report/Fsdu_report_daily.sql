@@ -46,7 +46,8 @@ loan_os AS (
         l.loan_doc_id,
         l.loan_principal,
         l.flow_fee,
-        l.interest_rate,
+        -- not stored for float advance: flat rate = flow_fee / loan_principal * 100
+        COALESCE(l.interest_rate, ROUND(l.flow_fee / NULLIF(l.loan_principal, 0) * 100, 2)) AS interest_rate,
         l.disbursal_date,
         l.due_date,
         l.duration,
@@ -155,13 +156,13 @@ recoveries_report AS (
         loan_doc_id AS loan_ID,
         amount_recoverd AS recovered_amount,
         outstanding AS outstanding_amount,
-        IF(outstanding <= 0, DATE(paid_date), NULL) AS recovery_date,
+        DATE(last_recovery_date) AS recovery_date,
         DATE(DATE_ADD(due_date, INTERVAL 1 DAY)) AS default_date,
         before_overdue_due_amount AS outstanding_balance_at_default_date,
         -- recovered principal / (1 + flat fee / loan amount) ^ ((recovery date - default date) / loan tenor)
-        principal_recoverd / POW(1 + flow_fee / NULLIF(loan_principal, 0),
+        ROUND(principal_recoverd / POW(1 + flow_fee / NULLIF(loan_principal, 0),
             DATEDIFF(DATE(last_recovery_date), DATE(DATE_ADD(due_date, INTERVAL 1 DAY))) / NULLIF(duration, 0)
-        ) AS discounted_value_of_recovered_amount  
+        ), 2) AS discounted_value_of_recovered_amount  
     FROM loan_status
     WHERE amount_recoverd > 0
 )
