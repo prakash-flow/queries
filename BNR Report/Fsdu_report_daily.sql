@@ -23,7 +23,10 @@ WITH txn_totals AS (
         SUM(IF(t.txn_type = 'fee_waiver', t.fee, 0)) AS fee_waiver,
         MAX(IF(t.txn_type = 'payment' AND (t.principal > 0 OR t.fee > 0), t.txn_date, NULL)) AS paid_date,
         SUM(IF(t.txn_type = 'payment' AND t.txn_date <= DATE_ADD(l.due_date, INTERVAL 1 DAY), t.principal + t.fee, 0)) AS amount_recived,
-        SUM(IF(t.txn_type = 'payment' AND t.txn_date > DATE_ADD(l.due_date, INTERVAL 1 DAY), t.principal + t.fee, 0)) AS amount_recoverd
+        SUM(IF(t.txn_type = 'payment' AND t.txn_date > DATE_ADD(l.due_date, INTERVAL 1 DAY), t.principal + t.fee, 0)) AS amount_recoverd,
+        SUM(IF(t.txn_type = 'payment' AND t.txn_date > DATE_ADD(l.due_date, INTERVAL 1 DAY), t.principal, 0)) AS principal_recoverd,
+        MAX(IF(t.txn_type = 'payment' AND t.txn_date > DATE_ADD(l.due_date, INTERVAL 1 DAY)
+               AND (t.principal > 0 OR t.fee > 0), t.txn_date, NULL)) AS last_recovery_date
     FROM loans l
     JOIN loan_txns t ON t.loan_doc_id = l.loan_doc_id
     WHERE l.country_code = @country_code
@@ -40,6 +43,7 @@ loan_os AS (
         l.cust_id,
         l.loan_doc_id,
         l.loan_principal,
+        l.flow_fee,
         l.interest_rate,
         l.disbursal_date,
         l.due_date,
@@ -54,6 +58,8 @@ loan_os AS (
         DATEDIFF(@end_date, l.due_date) AS par_day,
         t.paid_date,
         t.amount_recoverd,
+        t.principal_recoverd,
+        t.last_recovery_date,
         (l.loan_principal + l.flow_fee) - (t.amount_recived + IFNULL(t.fee_waiver, 0)) AS before_overdue_due_amount
     FROM loans l
     LEFT JOIN txn_totals t ON t.loan_doc_id = l.loan_doc_id
@@ -143,7 +149,10 @@ recoveries_report AS (
         IF(outstanding <= 0, DATE(paid_date), NULL) AS recovery_date,
         DATE(DATE_ADD(due_date, INTERVAL 1 DAY)) AS default_date,
         before_overdue_due_amount AS outstanding_balance_at_default_date,
-        NULL AS discounted_value_of_recovered_amount  
+        -- recovered principal / (1 + flat fee / loan amount) ^ ((recovery date - default date) / loan tenor)
+        principal_recoverd / POW(1 + flow_fee / NULLIF(loan_principal, 0),
+            DATEDIFF(DATE(last_recovery_date), DATE(DATE_ADD(due_date, INTERVAL 1 DAY))) / NULLIF(duration, 0)
+        ) AS discounted_value_of_recovered_amount  
     FROM loan_status
     WHERE amount_recoverd > 0
 )
