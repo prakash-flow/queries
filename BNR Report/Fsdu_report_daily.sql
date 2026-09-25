@@ -72,7 +72,7 @@ loan_os AS (
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
       AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
       AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
-      AND l.disbursal_date <= @end_date 
+      AND l.disbursal_date <= @end_date  
 ),
 
 loan_status AS (
@@ -145,7 +145,7 @@ repayments_report AS (
         loan_doc_id AS loan_ID,
         paid_principal + paid_fee AS repaid_principal_amount,
         outstanding AS outstanding_amount,
-        IF(outstanding <= 0, DATE(paid_date), NULL) AS repaid_date,
+        DATE(paid_date) AS repaid_date,
         status AS loan_status
     FROM loan_status
     WHERE paid_principal + paid_fee > 0
