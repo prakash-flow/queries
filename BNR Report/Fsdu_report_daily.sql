@@ -6,6 +6,7 @@
 
 SET @country_code     = 'UGA';
 SET @sub_lender_codes = 'FSD2';
+SET @loan_purposes    = 'float_advance';                        -- comma separated, same as LOAN_PURPOSES in reports.py
 SET @from_date        = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
 SET @to_date          = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
 
@@ -32,6 +33,7 @@ WITH txn_totals AS (
     WHERE l.country_code = @country_code
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
       AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
+      AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
       AND t.txn_type IN ('payment', 'fee_waiver')
       AND t.txn_date <= @end_date
       AND t.realization_date <= @end_date
@@ -49,6 +51,7 @@ loan_os AS (
         l.due_date,
         l.duration,
         l.loan_purpose,
+        l.acc_number,
         IFNULL(t.paid_principal, 0) AS paid_principal,
         IFNULL(t.paid_fee, 0) AS paid_fee,
         l.loan_principal - IFNULL(t.paid_principal, 0) AS principal_os,
@@ -66,6 +69,7 @@ loan_os AS (
     WHERE l.country_code = @country_code
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
       AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
+      AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
 ),
 
 loan_status AS (
@@ -87,8 +91,14 @@ disbursal_report AS (
     SELECT
         ls.cust_id AS borrower_ID,
         p.national_id AS borrower_NIN,
-        a.acc_number AS agent_identification_number,
-        CONCAT('+', @isd_code, TRIM(LEADING '0' FROM p.mobile_num)) AS borrower_phone_number,
+        ls.acc_number AS agent_identification_number,
+        CASE
+            WHEN p.mobile_num IS NULL OR p.mobile_num = '' THEN p.mobile_num
+            WHEN REPLACE(TRIM(p.mobile_num), ' ', '') LIKE '+%' THEN REPLACE(TRIM(p.mobile_num), ' ', '')
+            WHEN REPLACE(TRIM(p.mobile_num), ' ', '') LIKE CONCAT(@isd_code, '%')
+                 AND LENGTH(REPLACE(TRIM(p.mobile_num), ' ', '')) > 9 THEN CONCAT('+', REPLACE(TRIM(p.mobile_num), ' ', ''))
+            ELSE CONCAT('+', @isd_code, TRIM(LEADING '0' FROM REPLACE(TRIM(p.mobile_num), ' ', '')))
+        END AS borrower_phone_number,
         p.full_name AS borrower_name,
         p.gender AS borrower_gender,
         DATE(p.dob) AS borrower_date_of_birth,
@@ -106,7 +116,6 @@ disbursal_report AS (
         ls.duration AS loan_tenure_in_days
     FROM loan_status ls
     JOIN borrowers b ON b.cust_id = ls.cust_id
-    JOIN accounts a ON a.cust_id = b.cust_id AND a.is_primary_acc = 1
     JOIN address_info ai ON ai.id = b.owner_address_id
     JOIN persons p ON p.id = b.owner_person_id
     WHERE ls.disbursal_date BETWEEN @start_date AND @end_date
