@@ -145,7 +145,7 @@ repayments_report AS (
         loan_doc_id AS loan_ID,
         paid_principal + paid_fee AS repaid_principal_amount,
         outstanding AS outstanding_amount,
-        DATE(paid_date) AS repaid_date,
+        IF(outstanding <= 0, DATE(paid_date), NULL) AS repaid_date,
         status AS loan_status
     FROM loan_status
     WHERE paid_principal + paid_fee > 0
