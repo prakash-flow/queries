@@ -1,5 +1,5 @@
-SET @report_date = '2026-06-30';
-SET @month = '202606';
+SET @report_date = '2026-09-30';
+SET @month = '202609';
 SET @country_code = 'RWA';
 
 SET @last_day = LAST_DAY(DATE(CONCAT(@month,'01')));
@@ -63,10 +63,10 @@ payment_allocation AS (
     FROM payment_allocation_items p
     JOIN account_stmts a ON a.id=p.account_stmt_id
     JOIN loan_installments li
-        ON li.id = p.installment_id AND DATE(li.due_date) <= @last_day
+        ON li.id = p.installment_id 
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
-      AND DATE(a.stmt_txn_date)<=@last_day
+      AND DATE(p.allocation_date)<=@last_day
       AND is_reversed = 0
       AND a.realization_date<=@realization_date
     GROUP BY p.loan_doc_id,p.installment_number
@@ -108,7 +108,7 @@ last_payment AS (
     JOIN account_stmts a ON a.id=p.account_stmt_id
     WHERE p.country_code=@country_code
       AND a.country_code=@country_code
-      AND DATE(a.stmt_txn_date)<=@last_day
+      AND DATE(p.allocation_date)<=@last_day
       AND is_reversed = 0
     GROUP BY p.loan_doc_id
 ),
