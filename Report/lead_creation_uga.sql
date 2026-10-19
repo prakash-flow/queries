@@ -4,29 +4,29 @@ commission_data AS (
         cc.alt_acc_num,
         
     COALESCE(
+        MAX(CASE WHEN cc.month = '202609' THEN cc.holder_name END),
         MAX(CASE WHEN cc.month = '202608' THEN cc.holder_name END),
-        MAX(CASE WHEN cc.month = '202607' THEN cc.holder_name END),
-        MAX(CASE WHEN cc.month = '202606' THEN cc.holder_name END)
+        MAX(CASE WHEN cc.month = '202607' THEN cc.holder_name END)
     ) AS `Agent Name`,
 
         -- Monthly commissions
-        MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) AS `202606`,
         MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) AS `202607`,
         MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) AS `202608`,
+        MAX(CASE WHEN cc.month = '202609' THEN cc.commission END) AS `202609`,
 
         -- Account status
         CASE
-            WHEN a.alt_acc_num IS NOT NULL THEN 'Lead Onboarded'
-            WHEN cs.alt_acc_num IS NOT NULL THEN 'Lead Onboarded'
+            WHEN MAX(a.alt_acc_num) IS NOT NULL THEN 'Lead Onboarded'
+            WHEN MAX(l.id) IS NOT NULL THEN 'Lead Exists'
             ELSE 'New Lead'
         END AS account_status,
 
-        -- Average commission (Oct–Dec 2025)
+        -- Average commission (Jul–Sep 2026)
         CAST(
             (
-                MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                 MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
             ) / 3 AS UNSIGNED
         ) AS avg_commission,
         
@@ -34,104 +34,104 @@ commission_data AS (
         CASE
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) < 60000 THEN 'Ineligible'
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 60000 AND 119999 THEN 250000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 120000 AND 179999 THEN 500000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 180000 AND 249999 THEN 750000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 250000 AND 349999 THEN 1000000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 350000 AND 499999 THEN 1500000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 500000 AND 649999 THEN 2000000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 650000 AND 799999 THEN 2500000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 800000 AND 999999 THEN 3000000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) BETWEEN 1000000 AND 1249999 THEN 4000000
 
             WHEN CAST(
                 (
-                    MAX(CASE WHEN cc.month = '202606' THEN cc.commission END) +
                     MAX(CASE WHEN cc.month = '202607' THEN cc.commission END) +
-                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END)
+                    MAX(CASE WHEN cc.month = '202608' THEN cc.commission END) +
+                    MAX(CASE WHEN cc.month = '202609' THEN cc.commission END)
                 ) / 3 AS UNSIGNED
             ) >= 1250000 THEN 5000000
         END AS assessment_limit
 
     FROM cust_commissions cc
-    LEFT JOIN customer_statements cs on cs.alt_acc_num = cc.alt_acc_num
-    LEFT JOIN leads l on l.id = cs.entity_id and cs.entity = 'lead' and cs.is_removed = 0 and l.is_removed = 0 and l.type = 'kyc' and l.status != '60_customer_onboarded' and profile_status = 'open'
+    LEFT JOIN customer_statements cs on cs.alt_acc_num = cc.alt_acc_num and cs.is_removed = 0
+    LEFT JOIN leads l on l.id = cs.entity_id and cs.entity = 'lead' and cs.is_removed = 0 and l.is_removed = 0 and l.type = 'kyc' and l.status != '60_customer_onboarded' and l.profile_status = 'open'
     LEFT JOIN accounts a
         ON a.alt_acc_num = cc.alt_acc_num
         AND a.is_removed = 0
-    WHERE cc.month IN ('202606','202607','202608')
+    WHERE cc.month IN ('202607','202608','202609')
     GROUP BY cc.alt_acc_num
-    HAVING `202606` IS NOT NULL
-       AND `202607` IS NOT NULL
+    HAVING `202607` IS NOT NULL
        AND `202608` IS NOT NULL
+       AND `202609` IS NOT NULL
 ),
 
 first_fa_limits AS (

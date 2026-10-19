@@ -5,7 +5,9 @@
 -- then uncomment ONE of the SELECTs at the bottom.
 
 SET @country_code     = 'UGA';
-SET @sub_lender_codes = 'FSD2';
+SET @sub_lender_codes = '';                                     -- comma separated, '' = all sub-lenders
+SET @campaign_id      = 'ASIGMA';                               -- only customers enrolled in this campaign
+SET @min_disbursal_date = '2026-10-05 00:00:00';   -- same as MIN_DISBURSAL_DATE in consts.py
 SET @loan_purposes    = 'float_advance';                        -- comma separated, same as LOAN_PURPOSES in reports.py
 SET @from_date        = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
 SET @to_date          = DATE_SUB(CURDATE(), INTERVAL 5 DAY);   -- or e.g. '2026-09-22'
@@ -14,7 +16,7 @@ SET @start_date = CONCAT(DATE(@from_date), ' 00:00:00');
 SET @end_date   = CONCAT(DATE(@to_date), ' 23:59:59');
 SET @isd_code   = (SELECT isd_code FROM markets WHERE country_code = @country_code);
 
-SELECT @country_code, @sub_lender_codes, @start_date, @end_date, @isd_code;
+SELECT @country_code, @sub_lender_codes, @campaign_id, @start_date, @end_date, @isd_code;
 
 WITH txn_totals AS (
     SELECT
@@ -32,9 +34,12 @@ WITH txn_totals AS (
     JOIN loan_txns t ON t.loan_doc_id = l.loan_doc_id
     WHERE l.country_code = @country_code
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
-      AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
+      AND (@sub_lender_codes = '' OR FIND_IN_SET(l.sub_lender_code, @sub_lender_codes))
+      AND l.cust_id IN (SELECT ce.cust_id FROM campaign_enrollments ce
+                        WHERE ce.campaign_id = @campaign_id AND ce.country_code = @country_code)
       AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
       AND l.disbursal_date <= @end_date 
+      AND l.disbursal_date >= @min_disbursal_date
       AND t.txn_type IN ('payment', 'fee_waiver')
       AND t.txn_date <= @end_date
       AND t.realization_date <= @end_date
@@ -70,9 +75,12 @@ loan_os AS (
     LEFT JOIN txn_totals t ON t.loan_doc_id = l.loan_doc_id
     WHERE l.country_code = @country_code
       AND l.status NOT IN ('pending_disbursal', 'pending_mnl_dsbrsl', 'voided', 'hold')
-      AND FIND_IN_SET(l.sub_lender_code, @sub_lender_codes)
+      AND (@sub_lender_codes = '' OR FIND_IN_SET(l.sub_lender_code, @sub_lender_codes))
+      AND l.cust_id IN (SELECT ce.cust_id FROM campaign_enrollments ce
+                        WHERE ce.campaign_id = @campaign_id AND ce.country_code = @country_code)
       AND FIND_IN_SET(l.loan_purpose, @loan_purposes)
       AND l.disbursal_date <= @end_date  
+      AND l.disbursal_date >= @min_disbursal_date
 ),
 
 loan_status AS (
@@ -130,13 +138,13 @@ arrears_report AS (
         cust_id AS borrower_ID,
         loan_doc_id AS loan_ID,
         status AS loan_status,
-        IF(par_day > 1, outstanding, 0) AS amount_in_arrears,
+        outstanding AS amount_in_arrears,
         principal_os AS principal_outstanding,
         outstanding AS outstanding_balance,
         outstanding AS exposure_at_default,
         days_overdue AS days_arrears
     FROM loan_status
-    WHERE outstanding > 0
+    WHERE outstanding > 0 AND par_day > 1   -- only loans in arrears
 ),
 
 repayments_report AS (
