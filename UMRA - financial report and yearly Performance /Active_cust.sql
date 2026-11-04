@@ -1,5 +1,5 @@
-SET @country_code = 'RWA';
-SET @month = '202606';
+SET @country_code = 'UGA';
+SET @month = '202607';
 
 SET @pre_month = DATE_FORMAT(
     DATE_SUB(STR_TO_DATE(CONCAT(@month, '01'), '%Y%m%d'), INTERVAL 1 MONTH),
@@ -31,18 +31,18 @@ SET @pre_realization_date = (
     LIMIT 1
 );
 
--- SET @loan_purpose = 'growth_financing'
+SET @loan_purpose = 'float_advance';
 
 
 WITH latest_record_audits AS (
 SELECT r1.entity_id,
-           current_status AS status,
+           current_status AS status
     FROM status_audit_logs r1
     JOIN (
         SELECT entity_id, MAX(id) AS id
         FROM status_audit_logs
         WHERE date(modified_time) <= @last_day
-        GROUP BY record_code
+        GROUP BY entity_id
     ) r2 ON r1.id = r2.id
 )
 
@@ -62,15 +62,16 @@ JOIN loan_txns t ON l.loan_doc_id = t.loan_doc_id
 LEFT Join persons p  ON b.owner_person_id = p.id
 LEFT JOIN address_info a ON a.id = b.owner_address_id
 WHERE b.country_code = @country_code
-  AND t.txn_type IN ('disbursal','af_disbursal')
+  AND t.txn_type IN ('disbursal')
+  
   AND t.txn_date BETWEEN DATE_SUB(@last_day, INTERVAL 30 DAY) AND @last_day
   AND l.product_id NOT IN (43,75,300)
   AND l.status NOT IN ('voided','hold','pending_disbursal','pending_mnl_dsbrsl')
-  -- AND l.loan_purpose in (@loan_purpose)
+  AND l.loan_purpose in (@loan_purpose)
   AND NOT EXISTS (
         SELECT 1
         FROM latest_record_audits ra
-        WHERE ra.record_code = b.cust_id
+        WHERE ra.entity_id = b.cust_id
           AND ra.status = 'disabled'
   )
 -- GROUP BY l.loan_purpose
