@@ -1,14 +1,9 @@
--- Per-customer on-time repayment metrics (ClickHouse).
--- Same logic as overall_ontime_repayment.sql (MySQL), converted to ClickHouse
--- syntax: no user session variables, so the parameters are declared as
--- scalar WITH expressions; IFNULL/IF/DATE/DATE_ADD/DATE_SUB become
--- ifNull/if/toDate/addDays/subtractMonths.
-
 WITH
     toDate('2026-10-14')                                  AS end_date,
     toDateTime(concat(toString(end_date), ' 23:59:59'))   AS end_datetime,
     'UGA'                                                 AS v_country_code,
     subtractMonths(end_date, 3)                           AS three_months_ago,
+    least(end_date, subtractDays(today(), 2))             AS due_date_cutoff,
 
     base_query AS (
         SELECT
@@ -40,7 +35,10 @@ WITH
         LEFT JOIN loan_txns AS lt
             ON l.loan_doc_id = lt.loan_doc_id
            AND lt.txn_type = 'payment'
-        WHERE l.due_date <= end_datetime
+        WHERE (
+                l.due_date <= toDateTime(concat(toString(due_date_cutoff), ' 23:59:59'))
+                OR l.paid_date <= end_datetime
+              )
           AND l.country_code = v_country_code
           AND l.loan_purpose = 'float_advance'
           AND l.product_id NOT IN (
@@ -48,7 +46,6 @@ WITH
                 WHERE product_type = 'float_vending' OR repayment_type = 'installment'
               )
           AND l.status NOT IN ('voided', 'hold', 'pending_disbursal', 'pending_mnl_dsbrsl')
-          AND l.loan_purpose IN ('float_advance')
         GROUP BY l.cust_id, l.loan_doc_id, l.due_date, expected_amount
     ),
 

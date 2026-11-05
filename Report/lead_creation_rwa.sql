@@ -31,6 +31,8 @@ WITH
       cust_commissions cc
       LEFT JOIN leads l ON l.account_num = cc.acc_number
       AND l.is_removed = 0
+      AND l.type = "kyc"
+      AND l.profile_status = "open"
       LEFT JOIN accounts a ON a.acc_number = cc.acc_number
       AND a.is_removed = 0
       LEFT JOIN persons p
