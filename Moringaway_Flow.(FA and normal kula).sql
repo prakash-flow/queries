@@ -1,4 +1,4 @@
-SET @month = '202601';
+SET @month = '202610';
 SET @country_code = 'UGA';
 -- SET @loan_purpose = 'business'; -- uncomment if filtering by purpose
 
@@ -69,9 +69,9 @@ SELECT
 
     -- Outstanding values
     SUM(GREATEST(loan_principal - principal_paid, 0)) AS principal_os,
-    SUM(IF(DATEDIFF(@last_day, due_date) between 1 and 29,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30,
-    SUM(IF(DATEDIFF(@last_day, due_date) between 30 and 89,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30_and_89,
-    SUM(IF(DATEDIFF(@last_day, due_date) between 90 and 120,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_90_and_120,
+    SUM(IF(DATEDIFF(@last_day, due_date) between 1 and 30,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30,
+    SUM(IF(DATEDIFF(@last_day, due_date) between 31 and 90,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_30_and_89,
+    SUM(IF(DATEDIFF(@last_day, due_date) between 91 and 120,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_90_and_120,
     SUM(IF(DATEDIFF(@last_day, due_date) between 121 and 359,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_121_and_359,
     SUM(IF(DATEDIFF(@last_day, due_date) > 360,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_360,
     SUM(IF(DATEDIFF(@last_day, due_date) >= 90,  GREATEST(loan_principal - principal_paid, 0), 0)) AS par_90
@@ -79,3 +79,12 @@ SELECT
 FROM filtered_loans
 GROUP BY loan_purpose
 ORDER BY principal_os DESC;
+
+
+
+
+
+
+
+
+
